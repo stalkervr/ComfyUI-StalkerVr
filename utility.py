@@ -67,11 +67,16 @@ Type: {value_type}
 Value: {input_value}"""
 
         if log_to_console:
+#             console_formatted_block = f"""
+# {self.LOG_TAG} ==================== LOG START ====================
+# {self.LOG_TAG} {core_log_info.replace(chr(10), chr(10) + self.LOG_TAG + " ")}
+# {self.LOG_TAG} Force Trigger: {force_log_trigger} (Used to ensure execution)
+# {self.LOG_TAG} ==================== LOG END ======================
+# """
             console_formatted_block = f"""
-{self.LOG_TAG} ==================== LOG START ====================
-{self.LOG_TAG} {core_log_info.replace(chr(10), chr(10) + self.LOG_TAG + " ")}
-{self.LOG_TAG} Force Trigger: {force_log_trigger} (Used to ensure execution)
-{self.LOG_TAG} ==================== LOG END ======================
+{self.LOG_TAG}
+{core_log_info}
+{self.LOG_TAG}
 """
             print(console_formatted_block)
 
