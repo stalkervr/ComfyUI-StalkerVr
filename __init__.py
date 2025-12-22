@@ -5,7 +5,6 @@ WEB_DIRECTORY = os.path.join(os.path.dirname(__file__), "web")
 from .image_process import (
     ImageGridCropper,
     ImageBatchCrop,
-    # ImageAspectRatioFixer,
     ImageRatioResizer,
 )
 
@@ -20,14 +19,6 @@ from .sting_process import (
 from .prompt_handler import (
     PromptPartJoin,
     WanVideoMultiPrompt
-)
-
-from .prompt_processor import (
-    PromptWeightManager,
-    PromptCombinationProcessor,
-    PromptTagFilter,
-    PromptRandomizer,
-    PromptConditioner
 )
 
 from .json_process import (
@@ -68,15 +59,9 @@ NODE_CLASS_MAPPINGS = {
 
     "PromptPartJoin": PromptPartJoin,
     "WanVideoMultiPrompt": WanVideoMultiPrompt,
-    "PromptWeightManager": PromptWeightManager,
-    "PromptCombinationProcessor": PromptCombinationProcessor,
-    "PromptTagFilter": PromptTagFilter,
-    "PromptRandomizer": PromptRandomizer,
-    "PromptConditioner": PromptConditioner,
 
     "ImageGridCropper": ImageGridCropper,
     "ImageBatchCrop": ImageBatchCrop,
-    # "ImageAspectRatioFixer": ImageAspectRatioFixer,
     "ImageRatioResizer": ImageRatioResizer,
 
     "JsonFieldValueExtractor": JsonFieldValueExtractor,
@@ -108,15 +93,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
     "PromptPartJoin": "Prompt Part Join",
     "WanVideoMultiPrompt": "WanVideo Multi Prompt",
-    "PromptWeightManager": "Prompt Weight Manager",
-    "PromptCombinationProcessor": "Prompt Combination Processor",
-    "PromptTagFilter": "Prompt Tag Filter",
-    "PromptRandomizer": "Prompt Randomizer",
-    "PromptConditioner": "Prompt Conditioner",
 
     "ImageGridCropper": "Image Grid Cropper",
     "ImageBatchCrop": "Image Batch Crop",
-    # "ImageAspectRatioFixer": "Image Aspect Ratio Fixer",
     "ImageRatioResizer": "🪛 Image → Ratio Resizer",
 
     "JsonFieldValueExtractor": "🪛 JSON → Field Value Extractor",
