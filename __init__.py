@@ -2,13 +2,13 @@ import os
 
 WEB_DIRECTORY = os.path.join(os.path.dirname(__file__), "web")
 
-from image_process import (
+from .nodes.image_process import (
     ImageGridCropper,
     ImageBatchCrop,
     ImageRatioResizer,
 )
 
-from sting_process import (
+from .nodes.sting_process import (
     StringConcatenation,
     StringWrapper,
     StringListToString,
@@ -16,12 +16,12 @@ from sting_process import (
     StringBuilder
 )
 
-from prompt_handler import (
+from .nodes.prompt_handler import (
     PromptPartJoin,
     WanVideoMultiPrompt
 )
 
-from json_process import (
+from .nodes.json_process import (
     JsonFieldValueExtractor,
     JsonRootListExtractor,
     JsonFieldRemover,
@@ -35,17 +35,17 @@ from json_process import (
     JsonPairInput
 )
 
-from batch_process import (
+from .nodes.batch_process import (
     LoopAny,
     ListItemExtractor,
     AnyCollector
 )
 
-from utility import (
+from .nodes.utility import (
     LogValue
 )
 
-from json_builder import (
+from .nodes.json_builder import (
     JsonBuilder
 )
 
