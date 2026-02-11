@@ -1,6 +1,11 @@
 import json
 
 
+from .constants import (
+    CATEGORY_PREFIX
+)
+
+
 class JsonBuilder:
     """
     Node to dynamically add key-value input pairs based on the 'num_pairs' value.
@@ -22,7 +27,7 @@ class JsonBuilder:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("json_output",)
     FUNCTION = "build_json"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = """
 Node to dynamically add key-value input pairs based on the 'num_pairs' value.
 Supports nested keys using dot notation (e.g., 'parent.child.key').

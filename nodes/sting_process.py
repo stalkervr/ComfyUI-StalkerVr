@@ -1,3 +1,8 @@
+from .constants import (
+    CATEGORY_PREFIX
+)
+
+
 class StringConcatenation:
     """Node to concatenate two inputs of type ANY with an optional separator and newline."""
 
@@ -16,7 +21,7 @@ class StringConcatenation:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("STRING",)
     FUNCTION = "concatenate_inputs"
-    CATEGORY = "Stalkervr/Text"
+    CATEGORY = f"{CATEGORY_PREFIX}/Text"
 
     def concatenate_inputs(self, any_1="", any_2="", separator="", newline=False):
         # Преобразуем входы в строки для конкатенации
@@ -49,7 +54,7 @@ class StringWrapper:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("STRING",)
     FUNCTION = "wrap_text"
-    CATEGORY = "Stalkervr/Text"
+    CATEGORY = f"{CATEGORY_PREFIX}/Text"
 
     def wrap_text(self, prefix, input_text, suffix):
         prefix = prefix.strip()
@@ -77,7 +82,7 @@ class StringListToString:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("OUTPUT",)
     FUNCTION = "join_list"
-    CATEGORY = "Stalkervr/Text"
+    CATEGORY = f"{CATEGORY_PREFIX}/Text"
 
     def join_list(self, string_list, separator):
         safe_list = [str(item) for item in string_list]
@@ -109,7 +114,7 @@ class StringCollector:
     INPUT_IS_LIST = True
     OUTPUT_NODE = True
     FUNCTION = "collect_texts"
-    CATEGORY = "Stalkervr/Text"
+    CATEGORY = f"{CATEGORY_PREFIX}/Text"
 
     def collect_texts(self, unique_id=None, extra_pnginfo=None, **kwargs):
         values = []
@@ -151,7 +156,7 @@ class StringBuilder:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("STRING",)
     FUNCTION = "concatenate_inputs"
-    CATEGORY = "Stalkervr/Text"
+    CATEGORY = f"{CATEGORY_PREFIX}/Text"
 
     def concatenate_inputs(self, num_inputs, separator="", newline=False, **kwargs):
         strings_to_concat = []

@@ -1,3 +1,8 @@
+from .constants import (
+    CATEGORY_PREFIX
+)
+
+
 class Everything(str):
     def __ne__(self, __value: object) -> bool:
         return False
@@ -22,7 +27,7 @@ class LoopAny:
     RETURN_NAMES = ("output",)
     OUTPUT_IS_LIST = (True,)
     FUNCTION = "create_loop_any"
-    CATEGORY = "Stalkervr/Control"
+    CATEGORY = f"{CATEGORY_PREFIX}/Control"
 
     def _infer_and_set_return_type(self, items):
         """
@@ -83,7 +88,7 @@ class ListItemExtractor:
     RETURN_NAMES = ("count", "item")
     OUTPUT_IS_LIST = (False, False)
     FUNCTION = "extract_item"
-    CATEGORY = "Stalkervr/Control"
+    CATEGORY = f"{CATEGORY_PREFIX}/Control"
 
     def extract_item(self, input, index):
         if not isinstance(input, list):
@@ -122,7 +127,7 @@ class AnyCollector:
     INPUT_IS_LIST = True
     OUTPUT_NODE = True
     FUNCTION = "collect_any"
-    CATEGORY = "Stalkervr/Control"
+    CATEGORY = f"{CATEGORY_PREFIX}/Control"
 
     def collect_any(self, unique_id=None, extra_pnginfo=None, **kwargs):
         collected = []

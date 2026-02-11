@@ -32,7 +32,9 @@ from .nodes.json_process import (
     JsonPathLoader,
     JsonSerializeObject,
     JsonDeserializeObject,
-    JsonPairInput
+    JsonPairInput,
+    JsonFormat,
+    JsonMinify
 )
 
 from .nodes.batch_process import (
@@ -42,11 +44,33 @@ from .nodes.batch_process import (
 )
 
 from .nodes.utility import (
-    LogValue
+    LogValue,
+    ConsoleLog,
+    DebugConditioningStructure,
 )
 
 from .nodes.json_builder import (
     JsonBuilder
+)
+
+from .nodes.pipe import (
+    PipeIn,
+    PipeOut
+)
+
+from .nodes.file_process import (
+    SaveTextFile,
+    FormatDatePath,
+    YAMLSavePrompt,
+    YAMLLoadPrompt,
+    CreateProjectStructure
+)
+
+from .nodes.wan_video_enhance import (
+    WanVideoEnhanceMotionAdvancedKJ,
+    WanVideoEnhanceMotionAdvanced,
+    WanVideoEnhanceSVI,
+    WanVideoSVIProEmbeds_EnhancedMotion
 )
 
 
@@ -76,12 +100,31 @@ NODE_CLASS_MAPPINGS = {
     "JsonDeserializeObject": JsonDeserializeObject,
     "JsonPairInput": JsonPairInput,
     "JsonBuilder": JsonBuilder,
+    "JsonFormat": JsonFormat,
+    "JsonMinify": JsonMinify,
 
     "LoopAny": LoopAny,
     "AnyCollector": AnyCollector,
     "ListItemExtractor": ListItemExtractor,
 
     "LogValue": LogValue,
+    "ConsoleLog": ConsoleLog,
+    "DebugConditioningStructure": DebugConditioningStructure,
+
+    "SaveTextFile": SaveTextFile,
+    "FormatDatePath": FormatDatePath,
+    "YAMLSavePrompt": YAMLSavePrompt,
+    "YAMLLoadPrompt": YAMLLoadPrompt,
+    "CreateProjectStructure": CreateProjectStructure,
+
+    "PipeIn": PipeIn,
+    "PipeOut": PipeOut,
+
+    "WanVideoEnhanceMotionAdvancedKJ": WanVideoEnhanceMotionAdvancedKJ,
+    "WanVideoEnhanceMotionAdvanced": WanVideoEnhanceMotionAdvanced,
+    "WanVideoEnhanceSVI": WanVideoEnhanceSVI,
+    "WanVideoSVIProEmbeds_EnhancedMotion": WanVideoSVIProEmbeds_EnhancedMotion,
+
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -110,12 +153,30 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "JsonDeserializeObject": "🪛 JSON → Deserialize Object",
     "JsonPairInput": "🪛 JSON → Pair Input",
     "JsonBuilder": "🪛 JSON → Builder",
+    "JsonFormat": "🪛 JSON → Format",
+    "JsonMinify": "🪛 JSON → Minify",
 
     "LoopAny": "🪛 Loop Any",
     "ListItemExtractor": "🪛 List Item Extractor",
     "AnyCollector": "🪛 Any Collector",
 
     "LogValue": "🪛 Log Value",
+    "ConsoleLog": "🪛 Console Log",
+    "DebugConditioningStructure": "🪛 Debug Conditioning Structure",
+
+    "SaveTextFile": "🪛 Save Text File",
+    "FormatDatePath": "🪛 Format Date Path",
+    "YAMLSavePrompt": "🪛 YAML → Save Prompt",
+    "YAMLLoadPrompt": "🪛 YAML → Load Prompt",
+    "CreateProjectStructure": "🪛 Create Project Structure",
+
+    "PipeIn": "🪛 Pipe In",
+    "PipeOut": "🪛 Pipe Out",
+
+    "WanVideoEnhanceMotionAdvancedKJ": "🪛 Enhance Motion KJ",
+    "WanVideoEnhanceMotionAdvanced": "🪛 Enhance Motion",
+    "WanVideoEnhanceSVI": "🪛 SVI Enhance",
+    "WanVideoSVIProEmbeds_EnhancedMotion": "🪛 SVI ProEmbeds EnhancedMotion",
 }
 
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS', 'WEB_DIRECTORY']

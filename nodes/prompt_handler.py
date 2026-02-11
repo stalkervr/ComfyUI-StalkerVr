@@ -1,3 +1,8 @@
+from .constants import (
+    CATEGORY_PREFIX
+)
+
+
 class PromptPartJoin:
     """Node to combine 6 multiline text fields into a single STRING output."""
 
@@ -21,7 +26,7 @@ class PromptPartJoin:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("POSITIVE",)
     FUNCTION = "combine_texts"
-    CATEGORY = "Stalkervr/Prompt"
+    CATEGORY = f"{CATEGORY_PREFIX}/Prompt"
 
     def combine_texts(
             self,
@@ -65,7 +70,7 @@ class WanVideoMultiPrompt:
     RETURN_TYPES = ("STRING", "INT")
     RETURN_NAMES = ("split_prompt", "prompt_count")
     FUNCTION = "process_text"
-    CATEGORY = "Stalkervr/Prompt"
+    CATEGORY = f"{CATEGORY_PREFIX}/Prompt"
 
     def process_text(self, input_text, prefix, suffix):
         separator = "\n"

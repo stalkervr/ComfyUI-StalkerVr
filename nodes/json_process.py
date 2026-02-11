@@ -5,6 +5,11 @@ from pathlib import Path
 import random
 
 
+from .constants import (
+    CATEGORY_PREFIX
+)
+
+
 class Everything(str):
     """Wildcard type marker."""
     def __ne__(self, __value: object) -> bool:
@@ -40,7 +45,7 @@ class JsonFieldValueExtractor:
     RETURN_NAMES = ("string", "int", "float", "json_string", "list", "batch")
     OUTPUT_IS_LIST = (False, False, False, False, False, True)
     FUNCTION = "extract_value"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = "Node to extract a field value from a JSON string and convert it to multiple output formats"
 
     def extract_value(self, json_string, key):
@@ -107,7 +112,7 @@ class JsonRootListExtractor:
     RETURN_TYPES = ("LIST",)
     RETURN_NAMES = ("list_output",)
     FUNCTION = "extract_root_list"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = """
 Attempts to parse a JSON string. If the root element is a list (array),
 it returns that list. The node first tries standard JSON parsing.
@@ -170,7 +175,7 @@ class JsonFieldRemover:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("json_string",)
     FUNCTION = "clean_json"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = "Removes fields from JSON by paths separated with '|' Example: action.props | action.sequence"
 
     def _remove_path(self, obj, path: str):
@@ -222,7 +227,7 @@ class JsonFieldReplaceAdvanced:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("json_string",)
     FUNCTION = "replace_field"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = "Add new field in JSON or replace exists field value"
 
     def cast_value(self, value: str):
@@ -320,7 +325,7 @@ class JsonToString:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("string",)
     FUNCTION = "process"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = "Converts JSON to a formatted string."
 
     def process(self, json_input, new_line=False):
@@ -360,7 +365,7 @@ class JsonArraySplitter:
     RETURN_NAMES = ("output",)
     OUTPUT_IS_LIST = (True,)
     FUNCTION = "split_json"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = "Expands a specified JSON array into a list of JSON objects."
 
     def _infer_and_set_return_type(self, items):
@@ -443,7 +448,7 @@ class JsonPromptToTextPromptConverter:
 
     RETURN_TYPES = ("STRING",)
     FUNCTION = "extract_values"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = """
 Converts JSON to a string, leaving **only values** without field names,
 according to the rules:
@@ -542,7 +547,7 @@ class JsonPathLoader:
     RETURN_NAMES = ("output",)
     OUTPUT_IS_LIST = (True,)
     FUNCTION = "load"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = """
 Loads all JSON files from a folder on each execution.
 Adds a random reload_trigger to force reloading every time.
@@ -633,7 +638,7 @@ class JsonPairInput:
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("key", "value")
     FUNCTION = "get_pair"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = """
 A simple node to input a key-value pair as strings.
 Outputs the key and value separately."""
@@ -663,7 +668,7 @@ class JsonSerializeObject:
     RETURN_NAMES = ("output",)
     OUTPUT_IS_LIST = (True,)
     FUNCTION = "serialize_to_json_batch"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = """
 Takes either a single Python object or a list of Python objects
 (e.g., dictionaries, lists, primitives) and converts each to its JSON string representation.
@@ -716,7 +721,7 @@ class JsonDeserializeObject:
     RETURN_NAMES = ("output",)
     OUTPUT_IS_LIST = (True,)
     FUNCTION = "deserialize_from_json_batch"
-    CATEGORY = "Stalkervr/JSON"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
     DESCRIPTION = """
 Takes either a single JSON string or a list of JSON strings and deserializes each string
 back into its original Python object (e.g., dictionaries, lists, primitives).
@@ -755,3 +760,100 @@ If input is a list, each item is processed individually.
             f"{self.LOG_TAG} Deserialized {len(json_strings_to_process)} item(s) to {len(python_objects)} Python object(s).")
 
         return (python_objects,)
+
+
+class JsonFormat:
+    """
+    JsonFormat
+    ----------
+    Takes a JSON string (formatted or minified) and outputs a pretty-printed version.
+    Useful for human-readable logging or file saving.
+
+    If input is not valid JSON, returns the original string (or error message if strict mode enabled).
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "json_string": ("STRING", {"multiline": False, "default": ""}),
+                "ensure_ascii": ("BOOLEAN", {"default": False}),
+                "sort_keys": ("BOOLEAN", {"default": False}),
+                "on_error_return_original": ("BOOLEAN", {"default": True}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("pretty_json",)
+    FUNCTION = "format_json"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
+    DESCRIPTION = "Formats JSON string with indentation for readability."
+
+    def format_json(self, json_string: str, ensure_ascii=False, sort_keys=False, on_error_return_original=True):
+        try:
+            # Parse JSON
+            parsed = json.loads(json_string)
+            # Pretty-print
+            pretty = json.dumps(
+                parsed,
+                indent=4,
+                ensure_ascii=ensure_ascii,
+                sort_keys=sort_keys,
+                separators=(',', ': ')  # standard spacing
+            )
+            return (pretty,)
+        except json.JSONDecodeError as e:
+            error_msg = f"[JsonFormat ERROR] Invalid JSON: {e}"
+            print(error_msg, file=__import__('sys').stderr)
+            if on_error_return_original:
+                return (json_string,)
+            else:
+                return (error_msg,)
+
+
+class JsonMinify:
+    """
+    JsonMinify
+    ----------
+    Takes a pretty-printed JSON string and outputs a minified (compact) version.
+    Removes all unnecessary whitespace, newlines, and indentation.
+
+    If input is not valid JSON, returns the original string (or error message if strict mode enabled).
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "json_string": ("STRING", {"multiline": False, "default": ""}),
+                "ensure_ascii": ("BOOLEAN", {"default": False}),
+                "sort_keys": ("BOOLEAN", {"default": False}),
+                "on_error_return_original": ("BOOLEAN", {"default": True}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("minified_json",)
+    FUNCTION = "minify_json"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
+    DESCRIPTION = "Minifies JSON string by removing whitespace and newlines."
+
+    def minify_json(self, json_string: str, ensure_ascii=False, sort_keys=False, on_error_return_original=True):
+        try:
+            # Parse to validate and normalize
+            parsed = json.loads(json_string)
+            # Dump in compact form
+            minified = json.dumps(
+                parsed,
+                separators=(',', ':'),  # no extra spaces
+                ensure_ascii=ensure_ascii,
+                sort_keys=sort_keys
+            )
+            return (minified,)
+        except json.JSONDecodeError as e:
+            error_msg = f"[JsonMinify ERROR] Invalid JSON: {e}"
+            print(error_msg, file=__import__('sys').stderr)
+            if on_error_return_original:
+                return (json_string,)
+            else:
+                return (error_msg,)

@@ -3,6 +3,12 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 
+
+from .constants import (
+    CATEGORY_PREFIX
+)
+
+
 class ImageGridCropper:
     @classmethod
     def INPUT_TYPES(cls):
@@ -22,7 +28,7 @@ class ImageGridCropper:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("images",)
     FUNCTION = "crop_grid"
-    CATEGORY = "Stalkervr/Images"
+    CATEGORY = f"{CATEGORY_PREFIX}/Images"
 
     def crop_grid(
             self,
@@ -129,7 +135,7 @@ class ImageBatchCrop:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("cropped_images",)
     FUNCTION = "crop_batch"
-    CATEGORY = "Stalkervr/Images"
+    CATEGORY = f"{CATEGORY_PREFIX}/Images"
 
     def crop_batch(
             self,
@@ -210,7 +216,7 @@ class ImageAspectRatioFixer:
     RETURN_NAMES = ("source_image", "target_width", "target_height")
 
     FUNCTION = "calculate"
-    CATEGORY = "Stalkervr/Images"
+    CATEGORY = f"{CATEGORY_PREFIX}/Images"
 
     def parse_ratio(self, ratio_str, custom_x, custom_y):
         if ratio_str != "custom":
@@ -279,7 +285,7 @@ class ImageRatioResizer:
     RETURN_TYPES = ("IMAGE", "INT", "INT")
     RETURN_NAMES = ("resized_image", "width", "height")
     FUNCTION = "resize_to_aspect_ratio"
-    CATEGORY = "Stalkervr/Images"
+    CATEGORY = f"{CATEGORY_PREFIX}/Images"
 
     def resize_to_aspect_ratio(self, image, aspect_ratio, custom_x, custom_y):
         # Handle both single image [H, W, C] and batch of images [B, H, W, C]
