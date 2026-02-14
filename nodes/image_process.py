@@ -2,11 +2,13 @@ import os
 import torch
 import numpy as np
 import torch.nn.functional as F
+import json
+import re
+import folder_paths
 
-
-from .constants import (
-    CATEGORY_PREFIX
-)
+from PIL import Image, PngImagePlugin
+from pathlib import Path
+from .constants import CATEGORY_PREFIX
 
 
 class ImageGridCropper:
@@ -397,3 +399,436 @@ class ImageRatioResizer:
             pass
 
         return cropped_img
+
+
+class SaveImageWithMetadata:
+    """
+    SaveImageWithMetadata
+    --------------------
+    Saves images as PNG with custom metadata embedded directly in PNG chunks.
+    NO PREVIEW - simple and reliable saving to any path.
+    Features:
+    - Automatic sequential numbering (Triksy_00001.png)
+    - Workflow saving toggle (save_workflow parameter)
+    - Only counts PNG files for numbering (ignores txt/json/etc)
+    - Works with ANY directory path (absolute or relative)
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "images": ("IMAGE",),
+                "save_directory": ("STRING", {
+                    "default": "/home/stalkervr/AiProjects/Triksy/image/2026-02-11",
+                    "tooltip": "Full directory path where PNG files will be saved"
+                }),
+                "filename_prefix": ("STRING", {
+                    "default": "Triksy",
+                    "tooltip": "Filename prefix. Format: {prefix}_{number:05d}.png"
+                }),
+                "save_workflow": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Save ComfyUI workflow in PNG metadata"
+                }),
+                "metadata_json": ("STRING", {
+                    "default": '{"prompt_positive": "", "prompt_negative": "", "seed": ""}',
+                    "multiline": False,
+                    "dynamicPrompts": False,
+                    "tooltip": "JSON with metadata to embed in PNG (key-value pairs)"
+                }),
+                "compression_level": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 9,
+                    "step": 1,
+                    "tooltip": "PNG compression level (0=fastest, 9=best compression)"
+                }),
+            },
+            "hidden": {
+                "prompt": "PROMPT",
+                "extra_pnginfo": "EXTRA_PNGINFO",
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE", "STRING")
+    RETURN_NAMES = ("images", "saved_paths")
+    FUNCTION = "save_images_with_metadata"
+    CATEGORY = f"{CATEGORY_PREFIX}/Images"
+    OUTPUT_NODE = True
+
+    def save_images_with_metadata(self, images, save_directory, filename_prefix, save_workflow,
+                                  metadata_json, compression_level=6, prompt=None, extra_pnginfo=None):
+        # Validate inputs
+        save_directory = save_directory.strip()
+        filename_prefix = filename_prefix.strip()
+
+        if not save_directory:
+            raise ValueError("❌ Save directory cannot be empty")
+        if not filename_prefix:
+            raise ValueError("❌ Filename prefix cannot be empty")
+
+        # Parse metadata JSON
+        try:
+            metadata_dict = json.loads(metadata_json)
+            if not isinstance(metadata_dict, dict):
+                raise ValueError("Metadata must be a JSON object")
+        except json.JSONDecodeError as e:
+            raise ValueError(f"❌ Invalid JSON format: {str(e)}")
+
+        # Ensure directory exists
+        output_dir = Path(save_directory)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Find next available number based on existing PNG files ONLY
+        next_number = self._get_next_number(output_dir, filename_prefix)
+
+        # Process batch of images (ComfyUI format: [B, H, W, C])
+        saved_paths = []
+
+        for i in range(images.shape[0]):
+            # Generate filename with sequential numbering
+            current_number = next_number + i
+            filename = f"{filename_prefix}_{current_number:05d}.png"
+            save_path = output_dir / filename
+
+            # Convert tensor to PIL Image
+            img_tensor = images[i]
+            img_np = img_tensor.cpu().numpy()
+            img_np = (img_np * 255.0).clip(0, 255).astype(np.uint8)
+            img_pil = Image.fromarray(img_np, mode="RGB")
+
+            # Create PNG metadata container
+            pnginfo = PngImagePlugin.PngInfo()
+
+            # Add standard ComfyUI metadata (workflow, etc.) if enabled
+            if save_workflow and extra_pnginfo is not None:
+                for x in extra_pnginfo:
+                    pnginfo.add_text(x, json.dumps(extra_pnginfo[x]))
+
+            # Add custom metadata with proper chunk selection
+            for key, value in metadata_dict.items():
+                key_str = str(key)
+                value_str = str(value)
+
+                # Validate key length (PNG spec: max 79 bytes for tEXt/iTXt keys)
+                if len(key_str.encode('latin-1', errors='ignore')) > 79:
+                    print(f"⚠️ [SaveImageWithMetadata] Key '{key_str}' too long (>79 bytes), truncating")
+                    key_str = key_str.encode('latin-1', errors='ignore')[:79].decode('latin-1', errors='ignore')
+
+                # Choose chunk type based on value size and content
+                if len(value_str) > 1024:
+                    # Large values → zTXt (compressed text)
+                    pnginfo.add_ztxt(key_str, value_str)
+                elif any(ord(c) > 127 for c in value_str):
+                    # UTF-8 content → iTXt (international text)
+                    pnginfo.add_itxt(key_str, value_str, lang="", tkey="")
+                else:
+                    # Simple ASCII → tEXt (plain text)
+                    pnginfo.add_text(key_str, value_str)
+
+            # Save image with metadata
+            img_pil.save(
+                save_path,
+                format="PNG",
+                pnginfo=pnginfo,
+                compress_level=compression_level
+            )
+            saved_paths.append(str(save_path))
+
+            print(f"✅ [SaveImageWithMetadata] Saved: {save_path.name}")
+
+        # Return images and saved paths (comma-separated for batch)
+        saved_paths_str = ", ".join(saved_paths) if len(saved_paths) > 1 else saved_paths[0]
+
+        print(f"   Total images saved: {len(saved_paths)}")
+        print(f"   Workflow saved: {'YES' if save_workflow else 'NO'}")
+        print(f"   Metadata keys: {list(metadata_dict.keys())}")
+
+        return (images, saved_paths_str)
+
+    def _get_next_number(self, directory, prefix):
+        """
+        Find the next available sequential number based on existing PNG files.
+        Only considers files matching pattern: {prefix}_XXXXX.png
+        Ignores all other file types (txt, json, jpg, etc.)
+        """
+        pattern = re.compile(rf'^{re.escape(prefix)}_(\d{{5}})\.png$', re.IGNORECASE)
+        max_number = 0
+
+        try:
+            for entry in directory.iterdir():
+                if entry.is_file() and entry.suffix.lower() == '.png':
+                    match = pattern.match(entry.name)
+                    if match:
+                        number = int(match.group(1))
+                        max_number = max(max_number, number)
+        except Exception as e:
+            print(f"⚠️ [SaveImageWithMetadata] Error scanning directory: {str(e)}")
+
+        return max_number + 1
+
+
+class LoadImageWithMetadata:
+    """
+    LoadImageWithMetadata
+    --------------------
+    Loads PNG images WITH metadata preservation.
+    Returns image tensor + extracted metadata.
+    Compatible with standard ComfyUI image workflows.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        input_dir = folder_paths.get_input_directory()
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+        return {
+            "required": {
+                "image": (sorted(files), {"image_upload": True}),
+            },
+            "optional": {
+                "extract_key": ("STRING", {
+                    "default": "",
+                    "tooltip": "Optional: extract specific metadata key (leave empty for all metadata)"
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "MASK", "STRING", "STRING")
+    RETURN_NAMES = ("image", "mask", "metadata_json", "metadata_value")
+    FUNCTION = "load_image"
+    CATEGORY = f"{CATEGORY_PREFIX}/Images"
+
+    def load_image(self, image, extract_key=""):
+        # Get full path to image file
+        image_path = folder_paths.get_annotated_filepath(image)
+
+        # Validate file
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"❌ File not found: {image_path}")
+
+        if not image_path.lower().endswith('.png'):
+            print(f"⚠️ [LoadImageWithMetadata] Warning: Non-PNG file '{image_path}' - metadata extraction may fail")
+
+        # Load image with PIL (preserves metadata)
+        img = Image.open(image_path)
+
+        # Extract metadata FIRST (before any conversions)
+        metadata = self._extract_png_metadata(img)
+        metadata_json = json.dumps(metadata, ensure_ascii=False, indent=2)
+        metadata_value = metadata.get(extract_key.strip(), "") if extract_key.strip() else ""
+
+        # Convert to ComfyUI format
+        output_images = []
+        output_masks = []
+
+        for i in range(img.n_frames):
+            img.seek(i)
+            frame = img.convert("RGB")
+            image_np = np.array(frame).astype(np.float32) / 255.0
+            image_tensor = torch.from_numpy(image_np)[None,]
+            output_images.append(image_tensor)
+
+            # Extract mask if available (RGBA images)
+            if img.mode == 'RGBA':
+                mask_np = np.array(img.getchannel('A')).astype(np.float32) / 255.0
+                mask_tensor = torch.from_numpy(mask_np)[None,]
+                output_masks.append(mask_tensor)
+            else:
+                output_masks.append(torch.zeros((64, 64), dtype=torch.float32))
+
+        # Combine frames if multiple
+        if len(output_images) > 1:
+            output_image = torch.cat(output_images, dim=0)
+            output_mask = torch.cat(output_masks, dim=0)
+        else:
+            output_image = output_images[0]
+            output_mask = output_masks[0]
+
+        # Log results
+        print(f"✅ [LoadImageWithMetadata] Loaded: {os.path.basename(image_path)}")
+        print(f"   Size: {img.width}x{img.height} ({img.mode})")
+        print(f"   Metadata keys: {list(metadata.keys())}")
+        if extract_key.strip():
+            preview = metadata_value[:80] + "..." if len(metadata_value) > 80 else metadata_value
+            print(f"   Key '{extract_key}': {preview}")
+
+        return (output_image, output_mask, metadata_json, metadata_value)
+
+    def _extract_png_metadata(self, img):
+        """Extract all text chunks from PNG image"""
+        metadata = {}
+
+        # Method 1: img.text (Pillow >= 9.1.0)
+        if hasattr(img, 'text') and isinstance(img.text, dict):
+            for k, v in img.text.items():
+                if isinstance(v, str):
+                    metadata[k] = v
+
+        # Method 2: img.info fallback
+        if hasattr(img, 'info') and isinstance(img.info, dict):
+            for k, v in img.info.items():
+                if isinstance(v, str) and k not in ['dpi', 'gamma', 'transparency', 'aspect']:
+                    metadata[k] = v
+
+        return metadata
+
+    @classmethod
+    def IS_CHANGED(cls, image, extract_key=""):
+        image_path = folder_paths.get_annotated_filepath(image)
+        try:
+            m = os.path.getmtime(image_path)
+            return m
+        except Exception:
+            return 0.0
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, image, extract_key=""):
+        if not folder_paths.exists_annotated_filepath(image):
+            return "Invalid image file: {}".format(image)
+        return True
+
+
+class LoadImagesWithMetadata:
+    """
+    LoadImagesWithMetadata
+    ----------------------
+    Loads ALL PNG images from a specified directory and extracts embedded metadata.
+    Output structure matches your UI screenshot:
+    - image (LIST[IMAGE])
+    - mask (LIST[MASK])
+    - metadata_json (LIST[STRING])
+    - metadata_value (LIST[STRING])
+    All outputs are true lists (OUTPUT_IS_LIST = (True, True, True, True))
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "directory_path": ("STRING", {
+                    "default": "/home/stalkervr/AiProjects/Triksy/image/2026-02-11",
+                    "tooltip": "Directory path containing PNG files to load"
+                }),
+                "sort_by": (["name", "date", "none"], {
+                    "default": "name",
+                    "tooltip": "How to sort loaded images"
+                }),
+            },
+            "optional": {
+                "extract_key": ("STRING", {
+                    "default": "",
+                    "tooltip": "Extract specific metadata key from all images"
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "MASK", "STRING", "STRING")
+    RETURN_NAMES = ("image", "mask", "metadata_json", "metadata_value")
+    FUNCTION = "load_images_with_metadata"
+    CATEGORY = f"{CATEGORY_PREFIX}/IO"
+    OUTPUT_IS_LIST = (True, True, True, True)  # ← Все выходы — списки!
+
+    def load_images_with_metadata(self, directory_path, sort_by="name", extract_key=""):
+        # Validate directory
+        directory_path = directory_path.strip()
+        if not directory_path:
+            raise ValueError("❌ Directory path cannot be empty")
+
+        directory = Path(directory_path)
+        if not directory.exists():
+            print(f"⚠️ [LoadImagesWithMetadata] Directory not found: {directory_path}")
+            return ([], [], [], [])
+
+        # Find ALL PNG files in directory
+        png_files = []
+        for entry in directory.iterdir():
+            if entry.is_file() and entry.suffix.lower() == '.png':
+                png_files.append(entry)
+
+        if not png_files:
+            print(f"⚠️ [LoadImagesWithMetadata] No PNG files found in directory")
+            return ([], [], [], [])
+
+        # Sort files
+        if sort_by == "name":
+            png_files.sort(key=lambda x: x.name)
+        elif sort_by == "date":
+            png_files.sort(key=lambda x: x.stat().st_mtime)
+        # "none" - keep original order
+
+        # Load images and extract metadata
+        image_list = []
+        mask_list = []
+        metadata_json_list = []
+        metadata_value_list = []
+
+        for i, file_path in enumerate(png_files):
+            try:
+                # Load image with PIL (preserves metadata)
+                img = Image.open(file_path)
+
+                # Extract metadata
+                metadata = self._extract_png_metadata(img)
+                metadata_json = json.dumps(metadata, ensure_ascii=False, indent=2)
+                metadata_json_list.append(metadata_json)
+
+                # Extract specific value if requested
+                extracted_value = metadata.get(extract_key.strip(), "") if extract_key.strip() else ""
+                metadata_value_list.append(extracted_value)
+
+                # Convert to ComfyUI tensor format [B, H, W, C]
+                if img.mode == 'RGBA':
+                    # Separate alpha channel as mask
+                    rgb_channels = img.split()[:3]
+                    alpha_channel = img.split()[3]
+                    img_rgb = Image.merge('RGB', rgb_channels)
+                    mask_np = np.array(alpha_channel).astype(np.float32) / 255.0
+                    mask_tensor = torch.from_numpy(mask_np)[None,]
+                    mask_list.append(mask_tensor)
+                else:
+                    # No alpha channel - create empty mask
+                    w, h = img.size
+                    mask_np = np.zeros((h, w), dtype=np.float32)
+                    mask_tensor = torch.from_numpy(mask_np)[None,]
+                    mask_list.append(mask_tensor)
+
+                # Convert RGB to tensor
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+
+                img_np = np.array(img).astype(np.float32) / 255.0
+                img_tensor = torch.from_numpy(img_np)[None,]  # Add batch dimension
+                image_list.append(img_tensor)
+
+                print(f"✅ [LoadImagesWithMetadata] Loaded: {file_path.name}")
+
+            except Exception as e:
+                print(f"❌ [LoadImagesWithMetadata] Error loading {file_path.name}: {str(e)}")
+                # Skip problematic files, continue with others
+                continue
+
+        if not image_list:
+            print(f"⚠️ [LoadImagesWithMetadata] No valid images loaded")
+            return ([], [], [], [])
+
+        print(f"✅ [LoadImagesWithMetadata] Successfully loaded {len(image_list)} images with metadata")
+        return (image_list, mask_list, metadata_json_list, metadata_value_list)
+
+    def _extract_png_metadata(self, img):
+        """Extract all text chunks from PNG image"""
+        metadata = {}
+
+        # Method 1: img.text (Pillow >= 9.1.0)
+        if hasattr(img, 'text') and isinstance(img.text, dict):
+            for k, v in img.text.items():
+                if isinstance(v, str):
+                    metadata[k] = v
+
+        # Method 2: img.info fallback
+        if hasattr(img, 'info') and isinstance(img.info, dict):
+            for k, v in img.info.items():
+                if isinstance(v, str) and k not in ['dpi', 'gamma', 'transparency']:
+                    metadata[k] = v
+
+        return metadata

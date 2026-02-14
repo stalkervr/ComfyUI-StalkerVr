@@ -7,10 +7,7 @@ import torch
 import time
 import yaml
 
-
-from .constants import (
-    CATEGORY_PREFIX
-)
+from .constants import CATEGORY_PREFIX
 
 
 try:
@@ -487,9 +484,11 @@ class CreateProjectStructure:
             }
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING")
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING")
     RETURN_NAMES = (
-    "image_dataset", "video_dataset", "image_test", "image", "video_test", "video", "promptdb", "project_name")
+        "image_dataset", "video_dataset", "image_test", "image_edit", "image",
+        "video_test", "video", "promptdb", "project_name"
+    )
     FUNCTION = "create_project_paths"
     CATEGORY = f"{CATEGORY_PREFIX}/IO"
 
@@ -513,6 +512,7 @@ class CreateProjectStructure:
             "image_dataset": os.path.join(project_root, "dataset", "image", current_date),
             "video_dataset": os.path.join(project_root, "dataset", "video", current_date),
             "image_test": os.path.join(project_root, "image", "test", current_date),
+            "image_edit": os.path.join(project_root, "image", "edit", current_date),  # NEW!
             "image": os.path.join(project_root, "image", current_date),
             "video_test": os.path.join(project_root, "video", "test", current_date),
             "video": os.path.join(project_root, "video", current_date),
@@ -531,6 +531,7 @@ class CreateProjectStructure:
             directories["image_dataset"],
             directories["video_dataset"],
             directories["image_test"],
+            directories["image_edit"],  # Moved to position 4 (after image_test)
             directories["image"],
             directories["video_test"],
             directories["video"],

@@ -6,6 +6,9 @@ from .nodes.image_process import (
     ImageGridCropper,
     ImageBatchCrop,
     ImageRatioResizer,
+    SaveImageWithMetadata,
+    LoadImageWithMetadata,
+    LoadImagesWithMetadata
 )
 
 from .nodes.sting_process import (
@@ -87,6 +90,9 @@ NODE_CLASS_MAPPINGS = {
     "ImageGridCropper": ImageGridCropper,
     "ImageBatchCrop": ImageBatchCrop,
     "ImageRatioResizer": ImageRatioResizer,
+    "SaveImageWithMetadata": SaveImageWithMetadata,
+    "LoadImageWithMetadata": LoadImageWithMetadata,
+    "LoadImagesWithMetadata": LoadImagesWithMetadata,
 
     "JsonFieldValueExtractor": JsonFieldValueExtractor,
     "JsonRootListExtractor": JsonRootListExtractor,
@@ -140,6 +146,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ImageGridCropper": "Image Grid Cropper",
     "ImageBatchCrop": "Image Batch Crop",
     "ImageRatioResizer": "🪛 Image → Ratio Resizer",
+    "SaveImageWithMetadata": "🪛 Image → Save With Metadata",
+    "LoadImageWithMetadata": "🪛 Image → Load With Metadata",
+    "LoadImagesWithMetadata": "🪛 Image → Load Images With Metadata",
 
     "JsonFieldValueExtractor": "🪛 JSON → Field Value Extractor",
     "JsonRootListExtractor": "🪛 JSON → Root List Extractor",
