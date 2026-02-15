@@ -117,6 +117,7 @@ class ImageGridCropper:
 
         return (final_batch,)
 
+
 class ImageBatchCrop:
     @classmethod
     def INPUT_TYPES(cls):
@@ -188,74 +189,6 @@ class ImageBatchCrop:
                 pil_img.save(f"{save_path}/{filename}_{idx}.png")
 
         return (cropped_images,)
-
-
-class ImageAspectRatioFixer:
-    """
-    Auto aspect ratio calculator based on the same principles
-    as ImageAspectFixer (batch aware, tensor-safe).
-    """
-
-    ASPECT_CHOICES = [
-        "21:9",
-        "16:9",
-        "4:3",
-        "custom"
-    ]
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "image": ("IMAGE",),
-                "aspect_ratio": (cls.ASPECT_CHOICES, {"default": "16:9"}),
-                "custom_x": ("INT", {"default": 1, "min": 1}),
-                "custom_y": ("INT", {"default": 1, "min": 1}),
-            }
-        }
-
-    RETURN_TYPES = ("IMAGE", "INT", "INT")
-    RETURN_NAMES = ("source_image", "target_width", "target_height")
-
-    FUNCTION = "calculate"
-    CATEGORY = f"{CATEGORY_PREFIX}/Images"
-
-    def parse_ratio(self, ratio_str, custom_x, custom_y):
-        if ratio_str != "custom":
-            x, y = ratio_str.split(":")
-            return float(x), float(y)
-        return float(custom_x), float(custom_y)
-
-    def calculate(self, image, aspect_ratio, custom_x, custom_y):
-        """
-        image: torch.Tensor [B, H, W, C]
-        """
-        if not isinstance(image, torch.Tensor):
-            raise ValueError("Expected IMAGE tensor")
-
-        if image.dim() != 4:
-            raise ValueError("IMAGE must be 4D: [B, H, W, C]")
-
-        _, h, w, _ = image.shape
-
-        is_vertical = h > w
-
-        x, y = self.parse_ratio(aspect_ratio, custom_x, custom_y)
-
-        if is_vertical:
-            x, y = y, x
-
-        target_ratio = x / y
-        input_ratio = w / h
-
-        if input_ratio > target_ratio:
-            target_height = h
-            target_width = int(h * target_ratio)
-        else:
-            target_width = w
-            target_height = int(w / target_ratio)
-
-        return (image, target_width, target_height)
 
 
 class ImageRatioResizer:
@@ -404,7 +337,7 @@ class ImageRatioResizer:
 class SaveImageWithMetadata:
     """
     SaveImageWithMetadata
-    --------------------
+    ---------------------
     Saves images as PNG with custom metadata embedded directly in PNG chunks.
     NO PREVIEW - simple and reliable saving to any path.
     Features:
@@ -412,6 +345,9 @@ class SaveImageWithMetadata:
     - Workflow saving toggle (save_workflow parameter)
     - Only counts PNG files for numbering (ignores txt/json/etc)
     - Works with ANY directory path (absolute or relative)
+    - Handles empty metadata gracefully (no error, just saves without custom metadata)
+    - Preserves original data types by storing complete JSON object
+    - Compatible with older Pillow versions (fallbacks for add_ztxt/add_itxt)
     """
 
     @classmethod
@@ -468,13 +404,21 @@ class SaveImageWithMetadata:
         if not filename_prefix:
             raise ValueError("❌ Filename prefix cannot be empty")
 
-        # Parse metadata JSON
-        try:
-            metadata_dict = json.loads(metadata_json)
-            if not isinstance(metadata_dict, dict):
-                raise ValueError("Metadata must be a JSON object")
-        except json.JSONDecodeError as e:
-            raise ValueError(f"❌ Invalid JSON format: {str(e)}")
+        # Parse metadata JSON - handle empty/invalid gracefully
+        metadata_dict = {}
+        metadata_json_clean = metadata_json.strip() if metadata_json else ""
+
+        if metadata_json_clean:
+            try:
+                parsed = json.loads(metadata_json_clean)
+                if isinstance(parsed, dict):
+                    metadata_dict = parsed
+                else:
+                    print(f"⚠️ [SaveImageWithMetadata] Metadata is not a JSON object, ignoring custom metadata")
+            except json.JSONDecodeError as e:
+                print(f"⚠️ [SaveImageWithMetadata] Invalid JSON format, ignoring custom meta {str(e)}")
+        else:
+            print(f"📝 [SaveImageWithMetadata] No custom metadata provided, saving without custom metadata")
 
         # Ensure directory exists
         output_dir = Path(save_directory)
@@ -506,26 +450,38 @@ class SaveImageWithMetadata:
                 for x in extra_pnginfo:
                     pnginfo.add_text(x, json.dumps(extra_pnginfo[x]))
 
-            # Add custom metadata with proper chunk selection
-            for key, value in metadata_dict.items():
-                key_str = str(key)
-                value_str = str(value)
+            # Add custom metadata as SINGLE JSON object (preserves types!)
+            if metadata_dict:
+                # Serialize entire metadata dict as one JSON string
+                metadata_json_str = json.dumps(metadata_dict, ensure_ascii=False, separators=(',', ':'))
 
-                # Validate key length (PNG spec: max 79 bytes for tEXt/iTXt keys)
-                if len(key_str.encode('latin-1', errors='ignore')) > 79:
-                    print(f"⚠️ [SaveImageWithMetadata] Key '{key_str}' too long (>79 bytes), truncating")
-                    key_str = key_str.encode('latin-1', errors='ignore')[:79].decode('latin-1', errors='ignore')
+                # Use a single key for all metadata
+                metadata_key = "comfy_metadata"
 
-                # Choose chunk type based on value size and content
-                if len(value_str) > 1024:
-                    # Large values → zTXt (compressed text)
-                    pnginfo.add_ztxt(key_str, value_str)
-                elif any(ord(c) > 127 for c in value_str):
-                    # UTF-8 content → iTXt (international text)
-                    pnginfo.add_itxt(key_str, value_str, lang="", tkey="")
+                # Validate key length
+                if len(metadata_key.encode('latin-1', errors='ignore')) > 79:
+                    metadata_key = "metadata"  # Fallback to shorter key
+
+                # Choose chunk type based on size and available methods
+                if len(metadata_json_str) > 1024:
+                    # Try zTXt (compressed) first, fallback to tEXt if not available
+                    if hasattr(pnginfo, 'add_ztxt'):
+                        pnginfo.add_ztxt(metadata_key, metadata_json_str)
+                    else:
+                        # Fallback: use tEXt even for large data
+                        pnginfo.add_text(metadata_key, metadata_json_str)
+                        # print(f"⚠️ [SaveImageWithMetadataV2] Using tEXt instead of zTXt (Pillow version < 9.1.0)")
+                elif any(ord(c) > 127 for c in metadata_json_str):
+                    # Try iTXt (UTF-8) first, fallback to tEXt if not available
+                    if hasattr(pnginfo, 'add_itxt'):
+                        pnginfo.add_itxt(metadata_key, metadata_json_str, lang="", tkey="")
+                    else:
+                        # Fallback: use tEXt with UTF-8 encoding
+                        pnginfo.add_text(metadata_key, metadata_json_str)
+                        # print(f"⚠️ [SaveImageWithMetadataV2] Using tEXt instead of iTXt (Pillow version < 8.0.0)")
                 else:
-                    # Simple ASCII → tEXt (plain text)
-                    pnginfo.add_text(key_str, value_str)
+                    # Simple ASCII → tEXt (always available)
+                    pnginfo.add_text(metadata_key, metadata_json_str)
 
             # Save image with metadata
             img_pil.save(
@@ -543,7 +499,10 @@ class SaveImageWithMetadata:
 
         print(f"   Total images saved: {len(saved_paths)}")
         print(f"   Workflow saved: {'YES' if save_workflow else 'NO'}")
-        print(f"   Metadata keys: {list(metadata_dict.keys())}")
+        if metadata_dict:
+            print(f"   Custom metadata keys: {list(metadata_dict.keys())}")
+        else:
+            print(f"   Custom metadata: NONE")
 
         return (images, saved_paths_str)
 
@@ -572,10 +531,10 @@ class SaveImageWithMetadata:
 class LoadImageWithMetadata:
     """
     LoadImageWithMetadata
-    --------------------
-    Loads PNG images WITH metadata preservation.
-    Returns image tensor + extracted metadata.
-    Compatible with standard ComfyUI image workflows.
+    ----------------------
+    Loads PNG images and extracts metadata.
+    Supports both legacy format (individual fields) and new format (single JSON object).
+    Returns image tensor + extracted metadata with preserved types.
     """
 
     @classmethod
@@ -614,7 +573,10 @@ class LoadImageWithMetadata:
         img = Image.open(image_path)
 
         # Extract metadata FIRST (before any conversions)
-        metadata = self._extract_png_metadata(img)
+        raw_metadata = self._extract_png_metadata(img)
+
+        # Parse metadata - handle both legacy and new formats
+        metadata = self._parse_metadata(raw_metadata)
         metadata_json = json.dumps(metadata, ensure_ascii=False, indent=2)
         metadata_value = metadata.get(extract_key.strip(), "") if extract_key.strip() else ""
 
@@ -650,7 +612,7 @@ class LoadImageWithMetadata:
         print(f"   Size: {img.width}x{img.height} ({img.mode})")
         print(f"   Metadata keys: {list(metadata.keys())}")
         if extract_key.strip():
-            preview = metadata_value[:80] + "..." if len(metadata_value) > 80 else metadata_value
+            preview = str(metadata_value)[:80] + "..." if len(str(metadata_value)) > 80 else str(metadata_value)
             print(f"   Key '{extract_key}': {preview}")
 
         return (output_image, output_mask, metadata_json, metadata_value)
@@ -673,6 +635,70 @@ class LoadImageWithMetadata:
 
         return metadata
 
+    def _parse_metadata(self, raw_metadata):
+        """
+        Parse metadata from both legacy and new formats.
+        - New format: single 'comfy_metadata' key with JSON string
+        - Legacy format: individual key-value pairs (all strings)
+        """
+        # Check for new format first
+        if "comfy_metadata" in raw_metadata:
+            try:
+                # Parse the complete JSON object
+                parsed_metadata = json.loads(raw_metadata["comfy_metadata"])
+                if isinstance(parsed_metadata, dict):
+                    return parsed_metadata
+            except (json.JSONDecodeError, TypeError) as e:
+                print(f"⚠️ [LoadImageWithMetadata] Error parsing comfy_metadata: {str(e)}")
+
+        # Fallback to legacy format (individual fields)
+        # Try to convert string values back to appropriate types
+        legacy_metadata = {}
+        for key, value in raw_metadata.items():
+            if key == "comfy_metadata":
+                continue  # Skip the JSON string itself
+
+            # Attempt to parse individual values
+            legacy_metadata[key] = self._smart_convert_value(value)
+
+        return legacy_metadata
+
+    def _smart_convert_value(self, value):
+        """Convert string values back to appropriate types (for legacy format)"""
+        if not isinstance(value, str):
+            return value
+
+        val = value.strip()
+        if not val:
+            return val
+
+        # Try JSON parsing first
+        try:
+            return json.loads(val)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # Handle boolean strings
+        if val.lower() in ('true', 'false'):
+            return val.lower() == 'true'
+
+        # Handle null/none strings
+        if val.lower() in ('null', 'none'):
+            return None
+
+        # Handle numeric strings
+        import re
+        if re.match(r'^-?\d+\.?\d*$', val):
+            try:
+                if '.' not in val:
+                    return int(val)
+                else:
+                    return float(val)
+            except (ValueError, OverflowError):
+                pass
+
+        return val
+
     @classmethod
     def IS_CHANGED(cls, image, extract_key=""):
         image_path = folder_paths.get_annotated_filepath(image)
@@ -692,8 +718,9 @@ class LoadImageWithMetadata:
 class LoadImagesWithMetadata:
     """
     LoadImagesWithMetadata
-    ----------------------
+    -----------------------
     Loads ALL PNG images from a specified directory and extracts embedded metadata.
+    Supports both legacy format (individual fields) and new format (single JSON object).
     Output structure matches your UI screenshot:
     - image (LIST[IMAGE])
     - mask (LIST[MASK])
@@ -701,6 +728,11 @@ class LoadImagesWithMetadata:
     - metadata_value (LIST[STRING])
     All outputs are true lists (OUTPUT_IS_LIST = (True, True, True, True))
     """
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        # Force re-execution on every run
+        return float("nan")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -726,7 +758,7 @@ class LoadImagesWithMetadata:
     RETURN_TYPES = ("IMAGE", "MASK", "STRING", "STRING")
     RETURN_NAMES = ("image", "mask", "metadata_json", "metadata_value")
     FUNCTION = "load_images_with_metadata"
-    CATEGORY = f"{CATEGORY_PREFIX}/IO"
+    CATEGORY = f"{CATEGORY_PREFIX}/Images"
     OUTPUT_IS_LIST = (True, True, True, True)  # ← Все выходы — списки!
 
     def load_images_with_metadata(self, directory_path, sort_by="name", extract_key=""):
@@ -768,8 +800,11 @@ class LoadImagesWithMetadata:
                 # Load image with PIL (preserves metadata)
                 img = Image.open(file_path)
 
-                # Extract metadata
-                metadata = self._extract_png_metadata(img)
+                # Extract raw metadata
+                raw_metadata = self._extract_png_metadata(img)
+
+                # Parse metadata - handle both legacy and new formats
+                metadata = self._parse_metadata(raw_metadata)
                 metadata_json = json.dumps(metadata, ensure_ascii=False, indent=2)
                 metadata_json_list.append(metadata_json)
 
@@ -832,3 +867,66 @@ class LoadImagesWithMetadata:
                     metadata[k] = v
 
         return metadata
+
+    def _parse_metadata(self, raw_metadata):
+        """
+        Parse metadata from both legacy and new formats.
+        - New format: single 'comfy_metadata' key with JSON string
+        - Legacy format: individual key-value pairs (all strings)
+        """
+        # Check for new format first
+        if "comfy_metadata" in raw_metadata:  # ← Добавлено недостающее двоеточие!
+            try:
+                # Parse the complete JSON object
+                parsed_metadata = json.loads(raw_metadata["comfy_metadata"])
+                if isinstance(parsed_metadata, dict):
+                    return parsed_metadata
+            except (json.JSONDecodeError, TypeError) as e:
+                print(f"⚠️ [LoadImagesWithMetadata] Error parsing comfy_meta {str(e)}")
+
+        # Fallback to legacy format (individual fields)
+        # Try to convert string values back to appropriate types
+        legacy_metadata = {}
+        for key, value in raw_metadata.items():
+            if key == "comfy_metadata":
+                continue  # Skip the JSON string itself
+
+            # Attempt to parse individual values
+            legacy_metadata[key] = self._smart_convert_value(value)
+
+        return legacy_metadata
+
+    def _smart_convert_value(self, value):
+        """Convert string values back to appropriate types (for legacy format)"""
+        if not isinstance(value, str):
+            return value
+
+        val = value.strip()
+        if not val:
+            return val
+
+        # Try JSON parsing first
+        try:
+            return json.loads(val)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # Handle boolean strings
+        if val.lower() in ('true', 'false'):
+            return val.lower() == 'true'
+
+        # Handle null/none strings
+        if val.lower() in ('null', 'none'):
+            return None
+
+        # Handle numeric strings
+        if re.match(r'^-?\d+\.?\d*$', val):
+            try:
+                if '.' not in val:
+                    return int(val)
+                else:
+                    return float(val)
+            except (ValueError, OverflowError):
+                pass
+
+        return val

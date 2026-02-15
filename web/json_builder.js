@@ -137,7 +137,7 @@ app.registerExtension({
                     for (let i = currentNumPairs + 1; i <= newNumPairs; i++) {
                          // Добавляем входы
                          this.addInput(`key_${i}`, "STRING");
-                         this.addInput(`value_${i}`, "STRING");
+                         this.addInput(`value_${i}`, "*");
                          console.log(`[${nodeName} Extension] Added input: key_${i}`);
                          console.log(`[${nodeName} Extension] Added input: value_${i}`);
                     }

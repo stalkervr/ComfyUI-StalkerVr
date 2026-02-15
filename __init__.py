@@ -25,7 +25,6 @@ from .nodes.prompt_handler import (
 )
 
 from .nodes.json_process import (
-    JsonFieldValueExtractor,
     JsonRootListExtractor,
     JsonFieldRemover,
     JsonFieldReplaceAdvanced,
@@ -35,9 +34,10 @@ from .nodes.json_process import (
     JsonPathLoader,
     JsonSerializeObject,
     JsonDeserializeObject,
-    JsonPairInput,
     JsonFormat,
-    JsonMinify
+    JsonMinify,
+    JsonPairInput,
+    JsonFieldValueExtractor
 )
 
 from .nodes.batch_process import (
@@ -94,7 +94,6 @@ NODE_CLASS_MAPPINGS = {
     "LoadImageWithMetadata": LoadImageWithMetadata,
     "LoadImagesWithMetadata": LoadImagesWithMetadata,
 
-    "JsonFieldValueExtractor": JsonFieldValueExtractor,
     "JsonRootListExtractor": JsonRootListExtractor,
     "JsonFieldRemover": JsonFieldRemover,
     "JsonFieldReplaceAdvanced": JsonFieldReplaceAdvanced,
@@ -104,10 +103,11 @@ NODE_CLASS_MAPPINGS = {
     "JsonPathLoader": JsonPathLoader,
     "JsonSerializeObject": JsonSerializeObject,
     "JsonDeserializeObject": JsonDeserializeObject,
-    "JsonPairInput": JsonPairInput,
     "JsonBuilder": JsonBuilder,
     "JsonFormat": JsonFormat,
     "JsonMinify": JsonMinify,
+    "JsonPairInput": JsonPairInput,
+    "JsonFieldValueExtractor": JsonFieldValueExtractor,
 
     "LoopAny": LoopAny,
     "AnyCollector": AnyCollector,
@@ -130,7 +130,6 @@ NODE_CLASS_MAPPINGS = {
     "WanVideoEnhanceMotionAdvanced": WanVideoEnhanceMotionAdvanced,
     "WanVideoEnhanceSVI": WanVideoEnhanceSVI,
     "WanVideoSVIProEmbeds_EnhancedMotion": WanVideoSVIProEmbeds_EnhancedMotion,
-
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -143,14 +142,13 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PromptPartJoin": "Prompt Part Join",
     "WanVideoMultiPrompt": "WanVideo Multi Prompt",
 
-    "ImageGridCropper": "Image Grid Cropper",
-    "ImageBatchCrop": "Image Batch Crop",
+    "ImageGridCropper": "🪛 Image → Grid Cropper",
+    "ImageBatchCrop": "🪛 Image → Batch Crop",
     "ImageRatioResizer": "🪛 Image → Ratio Resizer",
     "SaveImageWithMetadata": "🪛 Image → Save With Metadata",
     "LoadImageWithMetadata": "🪛 Image → Load With Metadata",
-    "LoadImagesWithMetadata": "🪛 Image → Load Images With Metadata",
+    "LoadImagesWithMetadata": "🪛 Images → Load With Metadata",
 
-    "JsonFieldValueExtractor": "🪛 JSON → Field Value Extractor",
     "JsonRootListExtractor": "🪛 JSON → Root List Extractor",
     "JsonFieldRemover": "🪛 JSON → Field Remover",
     "JsonFieldReplaceAdvanced": "🪛 JSON → Field Add & Replace",
@@ -160,10 +158,11 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "JsonPathLoader": "🪛 JSON → Path Loader",
     "JsonSerializeObject": "🪛 JSON → Serialize Object",
     "JsonDeserializeObject": "🪛 JSON → Deserialize Object",
-    "JsonPairInput": "🪛 JSON → Pair Input",
     "JsonBuilder": "🪛 JSON → Builder",
     "JsonFormat": "🪛 JSON → Format",
     "JsonMinify": "🪛 JSON → Minify",
+    "JsonFieldValueExtractor": "🪛 JSON → Field Value Extractor",
+    "JsonPairInput": "🪛 JSON → Pair Input",
 
     "LoopAny": "🪛 Loop Any",
     "ListItemExtractor": "🪛 List Item Extractor",

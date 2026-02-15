@@ -1,94 +1,17 @@
 import json
 import os
 import traceback
-from pathlib import Path
 import random
+import re
 
-
-from .constants import (
-    CATEGORY_PREFIX
-)
+from pathlib import Path
+from .constants import CATEGORY_PREFIX
 
 
 class Everything(str):
     """Wildcard type marker."""
     def __ne__(self, __value: object) -> bool:
         return False
-
-
-class JsonFieldValueExtractor:
-    """
-    Node to extract a field value from a JSON string and convert it to multiple output formats:
-    STRING, INT, FLOAT, JSON, VALUE_LIST, BATCH_ANY
-    """
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "json_string": ("STRING", {
-                    "multiline": False,
-                    "default": "{\n"
-                               "  \"name\": \"Harley\",\n"
-                               "  \"age\": 25,\n"
-                               "  \"power\": 9.5,\n"
-                               "  \"info\": {\"city\": \"Gotham\", \"zip\": \"10001\"},\n"
-                               "  \"tags\": [\"psycho\", \"funny\", \"dangerous\"],\n"
-                               "  \"scores\": [1, 2.5, 3, 4]\n"
-                               "}"
-                }),
-                "key": ("STRING", {"default": "tags", "multiline": False}),
-            }
-        }
-
-    RETURN_TYPES = ("STRING", "INT", "FLOAT", "STRING", "LIST", "BATCH_ANY")
-    RETURN_NAMES = ("string", "int", "float", "json_string", "list", "batch")
-    OUTPUT_IS_LIST = (False, False, False, False, False, True)
-    FUNCTION = "extract_value"
-    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
-    DESCRIPTION = "Node to extract a field value from a JSON string and convert it to multiple output formats"
-
-    def extract_value(self, json_string, key):
-        try:
-            data = json.loads(json_string)
-
-            keys = key.split(".")
-            value = data
-            for key in keys:
-                if isinstance(value, dict) and key in value:
-                    value = value[key]
-                else:
-                    return (f"[ERROR] Field '{key}' not found", 0, 0.0, "{}", [], [])
-
-            str_value = str(value)
-
-            try:
-                int_value = int(float(value))
-            except (ValueError, TypeError):
-                int_value = 0
-
-            try:
-                float_value = float(value)
-            except (ValueError, TypeError):
-                float_value = 0.0
-
-            try:
-                json_value = json.dumps(value, ensure_ascii=False, indent=2)
-            except Exception:
-                json_value = "{}"
-
-            value_list = []
-            batch_any = []
-            if isinstance(value, list):
-                value_list = value
-                batch_any = value
-
-            return (str_value, int_value, float_value, json_value, value_list, batch_any)
-
-        except json.JSONDecodeError as e:
-            return (f"[ERROR] Invalid JSON: {e}", 0, 0.0, "{}", [], [])
-        except Exception as e:
-            return (f"[ERROR] {e}", 0, 0.0, "{}", [], [])
 
 
 class JsonRootListExtractor:
@@ -620,33 +543,6 @@ Dynamically infers output type (like LoopAny).
         return (output_list,)
 
 
-class JsonPairInput:
-    """
-    A simple node to input a key-value pair as strings.
-    Outputs the key and value separately.
-    """
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "key": ("STRING", {"default": "key", "multiline": False}),
-                "value": ("STRING", {"default": "value", "multiline": False})
-            }
-        }
-
-    RETURN_TYPES = ("STRING", "STRING")
-    RETURN_NAMES = ("key", "value")
-    FUNCTION = "get_pair"
-    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
-    DESCRIPTION = """
-A simple node to input a key-value pair as strings.
-Outputs the key and value separately."""
-
-    def get_pair(self, key, value):
-        return (key, value)
-
-
 class JsonSerializeObject:
     """
     Takes either a single Python object or a list of Python objects
@@ -857,3 +753,168 @@ class JsonMinify:
                 return (json_string,)
             else:
                 return (error_msg,)
+
+
+class JsonFieldValueExtractor:
+    """
+    JsonFieldValueExtractor
+    ------------------------
+    Extracts a field value from a JSON string and returns it with its original type.
+    Supports nested keys using dot notation (e.g., 'parent.child.key').
+    Includes passthrough output for chaining multiple extractions in pipeline.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "json_string": ("STRING", {
+                    "multiline": False,
+                    "default": "{\n"
+                               "  \"name\": \"Harley\",\n"
+                               "  \"age\": 25,\n"
+                               "  \"power\": 9.5,\n"
+                               "  \"info\": {\"city\": \"Gotham\", \"zip\": \"10001\"},\n"
+                               "  \"tags\": [\"psycho\", \"funny\", \"dangerous\"],\n"
+                               "  \"scores\": [1, 2.5, 3, 4]\n"
+                               "}"
+                }),
+                "key": ("STRING", {
+                    "default": "info.city",
+                    "multiline": False,
+                    "tooltip": "Field key to extract (supports dot notation: parent.child.key)"
+                }),
+            }
+        }
+
+    RETURN_TYPES = (Everything("*"), "STRING")
+    RETURN_NAMES = ("value", "json_passthrough")
+    FUNCTION = "extract_value"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
+    DESCRIPTION = """
+Extracts a field value from JSON string with original type preservation.
+- Supports nested keys using dot notation (e.g., 'parent.child.key')
+- Returns value with its original type (string, number, boolean, list, object, null)
+- Passthrough output is exact copy of input (not changed)
+"""
+
+    def extract_value(self, json_string, key):
+        # Passthrough is exact copy of input - no manipulation
+        json_passthrough = json_string
+
+        try:
+            # Parse JSON string
+            data = json.loads(json_string)
+
+            # Handle empty key - return the entire JSON object
+            if not key or not key.strip():
+                return (data, json_passthrough)
+
+            # Navigate through nested keys using dot notation
+            keys = [k for k in key.split(".") if k.strip()]
+
+            if not keys:
+                return (data, json_passthrough)
+
+            current_value = data
+
+            # Traverse the nested structure
+            for i, current_key in enumerate(keys):
+                if isinstance(current_value, dict):
+                    if current_key in current_value:
+                        current_value = current_value[current_key]
+                    else:
+                        error_msg = f"[ERROR] Key '{current_key}' not found in path '{'.'.join(keys[:i + 1])}'"
+                        print(f"❌ [JsonFieldValueExtractor] {error_msg}")
+                        return (None, json_passthrough)
+                else:
+                    error_msg = f"[ERROR] Cannot access key '{current_key}' - current value is {type(current_value).__name__} not dict"
+                    print(f"❌ [JsonFieldValueExtractor] {error_msg}")
+                    return (None, json_passthrough)
+
+            return (current_value, json_passthrough)
+
+        except json.JSONDecodeError as e:
+            error_msg = f"[ERROR] Invalid JSON format: {str(e)}"
+            print(f"❌ [JsonFieldValueExtractor] {error_msg}")
+            return (None, json_passthrough)
+        except Exception as e:
+            error_msg = f"[ERROR] Unexpected error: {str(e)}"
+            print(f"❌ [JsonFieldValueExtractor] {error_msg}")
+            return (None, json_passthrough)
+
+
+class JsonPairInput:
+    """
+    JsonPairInput
+    --------------
+    Automatically detects and converts string inputs to appropriate types.
+    Handles disconnected optional inputs by returning null for value.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "key": ("STRING", {
+                    "default": "my_key",
+                    "multiline": False,
+                }),
+            },
+            "optional": {
+                "value": (Everything("*"), {
+                    "default": "",
+                })
+            }
+        }
+
+    RETURN_TYPES = ("STRING", Everything("*"))
+    RETURN_NAMES = ("key", "value")
+    FUNCTION = "get_pair"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
+
+    def get_pair(self, key, value=None):
+        # Handle key (always convert to string)
+        key_str = str(key) if key is not None else ""
+
+        # Handle value: if not connected, value will be None
+        if value is None:
+            converted_value = None
+        elif isinstance(value, str) and value == "":
+            converted_value = None
+        else:
+            # Auto-detect and convert types for connected inputs
+            converted_value = self._auto_convert_type(value)
+
+        return (key_str, converted_value)
+
+    def _auto_convert_type(self, value):
+        """Automatically convert string values to appropriate types."""
+        if not isinstance(value, str):
+            return value
+
+        val = value.strip()
+        if not val:
+            return None
+
+        try:
+            return json.loads(val)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        if val.lower() in ('true', 'false'):
+            return val.lower() == 'true'
+
+        if val.lower() in ('null', 'none'):
+            return None
+
+        if re.match(r'^-?\d+\.?\d*$', val):
+            try:
+                if '.' not in val:
+                    return int(val)
+                else:
+                    return float(val)
+            except (ValueError, OverflowError):
+                pass
+
+        return val
