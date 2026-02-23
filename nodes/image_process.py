@@ -6,9 +6,97 @@ import json
 import re
 import folder_paths
 
-from PIL import Image, PngImagePlugin
+from PIL import Image, ImageOps, PngImagePlugin
 from pathlib import Path
 from .constants import CATEGORY_PREFIX
+
+from aiohttp import web
+from server import PromptServer
+
+
+# === ГЛОБАЛЬНЫЙ КЭШ: ТОЛЬКО ПОСЛЕДНИЕ МЕТАДАННЫЕ ===
+_METADATA_CACHE = {}
+
+
+# === ЭНДПОИНТ ДЛЯ КЭШИРОВАНИЯ ИЗ JS ===
+@PromptServer.instance.routes.post("/stalker/metadata_cache_latest")
+async def cache_latest_metadata(request):
+    try:
+        data = await request.json()
+        filename = data.get("filename")
+        if not filename:
+            return web.json_response({"error": "no filename"}, status=400)
+
+        image_path = folder_paths.get_annotated_filepath(filename)
+        if not os.path.exists(image_path):
+            return web.json_response({"error": "file not found"}, status=404)
+
+        with Image.open(image_path) as img:
+            raw_meta = _extract_png_metadata_static(img)
+            parsed_meta = _parse_metadata_static(raw_meta)
+            global _METADATA_CACHE
+            _METADATA_CACHE = parsed_meta  # ← ВСЕГДА ОДНО ЗНАЧЕНИЕ
+
+        print(f"✅ [MetadataCache] Updated latest metadata from: {filename}")
+        return web.json_response({"status": "success"})
+
+    except Exception as e:
+        print(f"⚠️ [MetadataCache] Error: {e}")
+        return web.json_response({"error": str(e)}, status=500)
+
+
+# === СТАТИЧЕСКИЕ ФУНКЦИИ ИЗВЛЕЧЕНИЯ МЕТАДАННЫХ ===
+def _extract_png_metadata_static(img):
+    metadata = {}
+    if hasattr(img, 'text') and isinstance(img.text, dict):
+        for k, v in img.text.items():
+            if isinstance(v, str):
+                metadata[k] = v
+    if hasattr(img, 'info') and isinstance(img.info, dict):
+        for k, v in img.info.items():
+            if isinstance(v, str) and k not in ['dpi', 'gamma', 'transparency', 'aspect']:
+                metadata[k] = v
+    return metadata
+
+
+def _parse_metadata_static(raw_metadata):
+    if "comfy_metadata" in raw_metadata:
+        try:
+            parsed = json.loads(raw_metadata["comfy_metadata"])
+            if isinstance(parsed, dict):
+                return parsed
+        except (json.JSONDecodeError, TypeError) as e:
+            print(f"⚠️ [LoadImageWithMetadataV2] Error parsing comfy_meta: {e}")
+
+    legacy_metadata = {}
+    for key, value in raw_metadata.items():
+        if key == "comfy_metadata":
+            continue
+        legacy_metadata[key] = _smart_convert_value_static(value)
+    return legacy_metadata
+
+
+def _smart_convert_value_static(value):
+    if not isinstance(value, str):
+        return value
+    val = value.strip()
+    if not val:
+        return val
+    try:
+        return json.loads(val)
+    except (json.JSONDecodeError, TypeError):
+        pass
+    if val.lower() in ('true', 'false'):
+        return val.lower() == 'true'
+    if val.lower() in ('null', 'none'):
+        return None
+    import re
+    if re.match(r'^-?\d+\.?\d*$', val):
+        try:
+            return int(val) if '.' not in val else float(val)
+        except (ValueError, OverflowError):
+            pass
+    return val
 
 
 class ImageGridCropper:
@@ -528,200 +616,14 @@ class SaveImageWithMetadata:
         return max_number + 1
 
 
-class LoadImageWithMetadata:
-    """
-    LoadImageWithMetadata
-    ----------------------
-    Loads PNG images and extracts metadata.
-    Supports both legacy format (individual fields) and new format (single JSON object).
-    Returns image tensor + extracted metadata with preserved types.
-    """
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        input_dir = folder_paths.get_input_directory()
-        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
-        return {
-            "required": {
-                "image": (sorted(files), {"image_upload": True}),
-            },
-            "optional": {
-                "extract_key": ("STRING", {
-                    "default": "",
-                    "tooltip": "Optional: extract specific metadata key (leave empty for all metadata)"
-                }),
-            }
-        }
-
-    RETURN_TYPES = ("IMAGE", "MASK", "STRING", "STRING")
-    RETURN_NAMES = ("image", "mask", "metadata_json", "metadata_value")
-    FUNCTION = "load_image"
-    CATEGORY = f"{CATEGORY_PREFIX}/Images"
-
-    def load_image(self, image, extract_key=""):
-        # Get full path to image file
-        image_path = folder_paths.get_annotated_filepath(image)
-
-        # Validate file
-        if not os.path.exists(image_path):
-            raise FileNotFoundError(f"❌ File not found: {image_path}")
-
-        if not image_path.lower().endswith('.png'):
-            print(f"⚠️ [LoadImageWithMetadata] Warning: Non-PNG file '{image_path}' - metadata extraction may fail")
-
-        # Load image with PIL (preserves metadata)
-        img = Image.open(image_path)
-
-        # Extract metadata FIRST (before any conversions)
-        raw_metadata = self._extract_png_metadata(img)
-
-        # Parse metadata - handle both legacy and new formats
-        metadata = self._parse_metadata(raw_metadata)
-        metadata_json = json.dumps(metadata, ensure_ascii=False, indent=2)
-        metadata_value = metadata.get(extract_key.strip(), "") if extract_key.strip() else ""
-
-        # Convert to ComfyUI format
-        output_images = []
-        output_masks = []
-
-        for i in range(img.n_frames):
-            img.seek(i)
-            frame = img.convert("RGB")
-            image_np = np.array(frame).astype(np.float32) / 255.0
-            image_tensor = torch.from_numpy(image_np)[None,]
-            output_images.append(image_tensor)
-
-            # Extract mask if available (RGBA images)
-            if img.mode == 'RGBA':
-                mask_np = np.array(img.getchannel('A')).astype(np.float32) / 255.0
-                mask_tensor = torch.from_numpy(mask_np)[None,]
-                output_masks.append(mask_tensor)
-            else:
-                output_masks.append(torch.zeros((64, 64), dtype=torch.float32))
-
-        # Combine frames if multiple
-        if len(output_images) > 1:
-            output_image = torch.cat(output_images, dim=0)
-            output_mask = torch.cat(output_masks, dim=0)
-        else:
-            output_image = output_images[0]
-            output_mask = output_masks[0]
-
-        # Log results
-        print(f"✅ [LoadImageWithMetadata] Loaded: {os.path.basename(image_path)}")
-        print(f"   Size: {img.width}x{img.height} ({img.mode})")
-        print(f"   Metadata keys: {list(metadata.keys())}")
-        if extract_key.strip():
-            preview = str(metadata_value)[:80] + "..." if len(str(metadata_value)) > 80 else str(metadata_value)
-            print(f"   Key '{extract_key}': {preview}")
-
-        return (output_image, output_mask, metadata_json, metadata_value)
-
-    def _extract_png_metadata(self, img):
-        """Extract all text chunks from PNG image"""
-        metadata = {}
-
-        # Method 1: img.text (Pillow >= 9.1.0)
-        if hasattr(img, 'text') and isinstance(img.text, dict):
-            for k, v in img.text.items():
-                if isinstance(v, str):
-                    metadata[k] = v
-
-        # Method 2: img.info fallback
-        if hasattr(img, 'info') and isinstance(img.info, dict):
-            for k, v in img.info.items():
-                if isinstance(v, str) and k not in ['dpi', 'gamma', 'transparency', 'aspect']:
-                    metadata[k] = v
-
-        return metadata
-
-    def _parse_metadata(self, raw_metadata):
-        """
-        Parse metadata from both legacy and new formats.
-        - New format: single 'comfy_metadata' key with JSON string
-        - Legacy format: individual key-value pairs (all strings)
-        """
-        # Check for new format first
-        if "comfy_metadata" in raw_metadata:
-            try:
-                # Parse the complete JSON object
-                parsed_metadata = json.loads(raw_metadata["comfy_metadata"])
-                if isinstance(parsed_metadata, dict):
-                    return parsed_metadata
-            except (json.JSONDecodeError, TypeError) as e:
-                print(f"⚠️ [LoadImageWithMetadata] Error parsing comfy_metadata: {str(e)}")
-
-        # Fallback to legacy format (individual fields)
-        # Try to convert string values back to appropriate types
-        legacy_metadata = {}
-        for key, value in raw_metadata.items():
-            if key == "comfy_metadata":
-                continue  # Skip the JSON string itself
-
-            # Attempt to parse individual values
-            legacy_metadata[key] = self._smart_convert_value(value)
-
-        return legacy_metadata
-
-    def _smart_convert_value(self, value):
-        """Convert string values back to appropriate types (for legacy format)"""
-        if not isinstance(value, str):
-            return value
-
-        val = value.strip()
-        if not val:
-            return val
-
-        # Try JSON parsing first
-        try:
-            return json.loads(val)
-        except (json.JSONDecodeError, TypeError):
-            pass
-
-        # Handle boolean strings
-        if val.lower() in ('true', 'false'):
-            return val.lower() == 'true'
-
-        # Handle null/none strings
-        if val.lower() in ('null', 'none'):
-            return None
-
-        # Handle numeric strings
-        import re
-        if re.match(r'^-?\d+\.?\d*$', val):
-            try:
-                if '.' not in val:
-                    return int(val)
-                else:
-                    return float(val)
-            except (ValueError, OverflowError):
-                pass
-
-        return val
-
-    @classmethod
-    def IS_CHANGED(cls, image, extract_key=""):
-        image_path = folder_paths.get_annotated_filepath(image)
-        try:
-            m = os.path.getmtime(image_path)
-            return m
-        except Exception:
-            return 0.0
-
-    @classmethod
-    def VALIDATE_INPUTS(cls, image, extract_key=""):
-        if not folder_paths.exists_annotated_filepath(image):
-            return "Invalid image file: {}".format(image)
-        return True
-
-
 class LoadImagesWithMetadata:
     """
     LoadImagesWithMetadata
     -----------------------
-    Loads ALL PNG images from a specified directory and extracts embedded metadata.
-    Supports both legacy format (individual fields) and new format (single JSON object).
-    Output structure matches your UI screenshot:
+    Loads ALL supported image files from a specified directory and extracts embedded metadata.
+    Supports PNG, JPG, JPEG, WEBP, BMP, TIFF, and other PIL-supported formats.
+    Handles missing metadata gracefully (no errors).
+    Output structure:
     - image (LIST[IMAGE])
     - mask (LIST[MASK])
     - metadata_json (LIST[STRING])
@@ -740,7 +642,7 @@ class LoadImagesWithMetadata:
             "required": {
                 "directory_path": ("STRING", {
                     "default": "/home/stalkervr/AiProjects/Triksy/image/2026-02-11",
-                    "tooltip": "Directory path containing PNG files to load"
+                    "tooltip": "Directory path containing image files to load"
                 }),
                 "sort_by": (["name", "date", "none"], {
                     "default": "name",
@@ -759,10 +661,9 @@ class LoadImagesWithMetadata:
     RETURN_NAMES = ("image", "mask", "metadata_json", "metadata_value")
     FUNCTION = "load_images_with_metadata"
     CATEGORY = f"{CATEGORY_PREFIX}/Images"
-    OUTPUT_IS_LIST = (True, True, True, True)  # ← Все выходы — списки!
+    OUTPUT_IS_LIST = (True, True, True, True)
 
     def load_images_with_metadata(self, directory_path, sort_by="name", extract_key=""):
-        # Validate directory
         directory_path = directory_path.strip()
         if not directory_path:
             raise ValueError("❌ Directory path cannot be empty")
@@ -772,22 +673,22 @@ class LoadImagesWithMetadata:
             print(f"⚠️ [LoadImagesWithMetadata] Directory not found: {directory_path}")
             return ([], [], [], [])
 
-        # Find ALL PNG files in directory
-        png_files = []
+        # Find ALL supported image files
+        supported_extensions = {'.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff', '.tif'}
+        image_files = []
         for entry in directory.iterdir():
-            if entry.is_file() and entry.suffix.lower() == '.png':
-                png_files.append(entry)
+            if entry.is_file() and entry.suffix.lower() in supported_extensions:
+                image_files.append(entry)
 
-        if not png_files:
-            print(f"⚠️ [LoadImagesWithMetadata] No PNG files found in directory")
+        if not image_files:
+            print(f"⚠️ [LoadImagesWithMetadata] No supported image files found in directory")
             return ([], [], [], [])
 
         # Sort files
         if sort_by == "name":
-            png_files.sort(key=lambda x: x.name)
+            image_files.sort(key=lambda x: x.name)
         elif sort_by == "date":
-            png_files.sort(key=lambda x: x.stat().st_mtime)
-        # "none" - keep original order
+            image_files.sort(key=lambda x: x.stat().st_mtime)
 
         # Load images and extract metadata
         image_list = []
@@ -795,109 +696,104 @@ class LoadImagesWithMetadata:
         metadata_json_list = []
         metadata_value_list = []
 
-        for i, file_path in enumerate(png_files):
+        for file_path in image_files:
             try:
-                # Load image with PIL (preserves metadata)
+                # Load image with PIL
                 img = Image.open(file_path)
+                img = ImageOps.exif_transpose(img)  # Handle EXIF orientation
 
-                # Extract raw metadata
-                raw_metadata = self._extract_png_metadata(img)
-
-                # Parse metadata - handle both legacy and new formats
+                # Extract metadata (gracefully handles missing metadata)
+                raw_metadata = self._extract_image_metadata(img)
                 metadata = self._parse_metadata(raw_metadata)
                 metadata_json = json.dumps(metadata, ensure_ascii=False, indent=2)
                 metadata_json_list.append(metadata_json)
 
-                # Extract specific value if requested
                 extracted_value = metadata.get(extract_key.strip(), "") if extract_key.strip() else ""
                 metadata_value_list.append(extracted_value)
 
-                # Convert to ComfyUI tensor format [B, H, W, C]
-                if img.mode == 'RGBA':
-                    # Separate alpha channel as mask
-                    rgb_channels = img.split()[:3]
-                    alpha_channel = img.split()[3]
-                    img_rgb = Image.merge('RGB', rgb_channels)
+                # Handle mask (alpha channel)
+                if 'A' in img.getbands():
+                    # Extract alpha as mask
+                    alpha_channel = img.getchannel('A')
                     mask_np = np.array(alpha_channel).astype(np.float32) / 255.0
-                    mask_tensor = torch.from_numpy(mask_np)[None,]
+                    mask_tensor = 1.0 - torch.from_numpy(mask_np)  # Invert like ComfyUI standard
+                    mask_tensor = mask_tensor.unsqueeze(0)
                     mask_list.append(mask_tensor)
                 else:
-                    # No alpha channel - create empty mask
+                    # Create empty mask
                     w, h = img.size
                     mask_np = np.zeros((h, w), dtype=np.float32)
-                    mask_tensor = torch.from_numpy(mask_np)[None,]
+                    mask_tensor = torch.from_numpy(mask_np).unsqueeze(0)
                     mask_list.append(mask_tensor)
 
-                # Convert RGB to tensor
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
-
-                img_np = np.array(img).astype(np.float32) / 255.0
-                img_tensor = torch.from_numpy(img_np)[None,]  # Add batch dimension
+                # Convert to RGB tensor
+                img_rgb = img.convert('RGB')
+                img_np = np.array(img_rgb).astype(np.float32) / 255.0
+                img_tensor = torch.from_numpy(img_np).unsqueeze(0)
                 image_list.append(img_tensor)
 
                 print(f"✅ [LoadImagesWithMetadata] Loaded: {file_path.name}")
 
             except Exception as e:
-                print(f"❌ [LoadImagesWithMetadata] Error loading {file_path.name}: {str(e)}")
-                # Skip problematic files, continue with others
+                print(f"⚠️ [LoadImagesWithMetadata] Skipped {file_path.name}: {str(e)}")
                 continue
 
         if not image_list:
             print(f"⚠️ [LoadImagesWithMetadata] No valid images loaded")
             return ([], [], [], [])
 
-        print(f"✅ [LoadImagesWithMetadata] Successfully loaded {len(image_list)} images with metadata")
+        print(f"✅ [LoadImagesWithMetadata] Successfully loaded {len(image_list)} images")
         return (image_list, mask_list, metadata_json_list, metadata_value_list)
 
-    def _extract_png_metadata(self, img):
-        """Extract all text chunks from PNG image"""
+    def _extract_image_metadata(self, img):
+        """Extract metadata from any image format (PNG, JPG, etc.)"""
         metadata = {}
 
-        # Method 1: img.text (Pillow >= 9.1.0)
+        # PNG text chunks
         if hasattr(img, 'text') and isinstance(img.text, dict):
             for k, v in img.text.items():
                 if isinstance(v, str):
                     metadata[k] = v
 
-        # Method 2: img.info fallback
+        # Generic info (works for JPG, PNG, etc.)
         if hasattr(img, 'info') and isinstance(img.info, dict):
             for k, v in img.info.items():
-                if isinstance(v, str) and k not in ['dpi', 'gamma', 'transparency']:
+                if isinstance(v, str) and k not in ['dpi', 'gamma', 'transparency', 'aspect']:
                     metadata[k] = v
+
+        # EXIF data (for JPG, TIFF, etc.)
+        if hasattr(img, '_getexif') and callable(img._getexif):
+            exif_data = img._getexif()
+            if exif_data:
+                for tag, value in exif_data.items():
+                    # Skip binary/excessive data
+                    if isinstance(value, (str, int, float)) and len(str(value)) < 1000:
+                        metadata[f"exif_{tag}"] = str(value)
 
         return metadata
 
     def _parse_metadata(self, raw_metadata):
-        """
-        Parse metadata from both legacy and new formats.
-        - New format: single 'comfy_metadata' key with JSON string
-        - Legacy format: individual key-value pairs (all strings)
-        """
+        """Parse metadata - handle both legacy and new formats"""
         # Check for new format first
-        if "comfy_metadata" in raw_metadata:  # ← Добавлено недостающее двоеточие!
+        if "comfy_metadata" in raw_metadata:
             try:
-                # Parse the complete JSON object
-                parsed_metadata = json.loads(raw_metadata["comfy_metadata"])
-                if isinstance(parsed_metadata, dict):
-                    return parsed_metadata
+                parsed = json.loads(raw_metadata["comfy_metadata"])
+                if isinstance(parsed, dict):
+                    return parsed
             except (json.JSONDecodeError, TypeError) as e:
-                print(f"⚠️ [LoadImagesWithMetadata] Error parsing comfy_meta {str(e)}")
+                print(f"⚠️ [LoadImagesWithMetadata] Error parsing comfy_meta: {e}")
 
-        # Fallback to legacy format (individual fields)
-        # Try to convert string values back to appropriate types
+        # Fallback to legacy format
         legacy_metadata = {}
         for key, value in raw_metadata.items():
             if key == "comfy_metadata":
-                continue  # Skip the JSON string itself
-
-            # Attempt to parse individual values
+                continue
             legacy_metadata[key] = self._smart_convert_value(value)
 
         return legacy_metadata
 
     def _smart_convert_value(self, value):
-        """Convert string values back to appropriate types (for legacy format)"""
+        """Convert string values back to appropriate types"""
         if not isinstance(value, str):
             return value
 
@@ -905,28 +801,116 @@ class LoadImagesWithMetadata:
         if not val:
             return val
 
-        # Try JSON parsing first
         try:
             return json.loads(val)
         except (json.JSONDecodeError, TypeError):
             pass
 
-        # Handle boolean strings
         if val.lower() in ('true', 'false'):
             return val.lower() == 'true'
 
-        # Handle null/none strings
         if val.lower() in ('null', 'none'):
             return None
 
-        # Handle numeric strings
         if re.match(r'^-?\d+\.?\d*$', val):
             try:
-                if '.' not in val:
-                    return int(val)
-                else:
-                    return float(val)
+                return int(val) if '.' not in val else float(val)
             except (ValueError, OverflowError):
                 pass
 
         return val
+
+
+class LoadImageWithMetadata:
+    """
+    LoadImageWithMetadata
+    ----------------------
+    Loads PNG images and extracts metadata.
+    Uses a global LATEST cache updated by JS on file selection.
+    Works reliably even after mask editing.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        input_dir = folder_paths.get_input_directory()
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+        return {
+            "required": {
+                "image": (sorted(files), {"image_upload": True}),
+            },
+            "optional": {
+                "extract_key": ("STRING", {"default": ""}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "MASK", "STRING", "STRING")
+    RETURN_NAMES = ("image", "mask", "metadata_json", "metadata_value")
+    FUNCTION = "load_image"
+    CATEGORY = f"{CATEGORY_PREFIX}/Images"
+    DESCRIPTION = """
+🎯 Automatically caches metadata when an image is selected.
+    Restores metadata even after using the built-in mask editor.
+    To preserve metadata: always re-select or reload your image 
+    in this node before opening the mask editor 
+    — this ensures the latest metadata is cached.
+    """
+
+    def load_image(self, image, extract_key=""):
+        # Загружаем изображение (может быть оригинал или temp-файл)
+        image_path = folder_paths.get_annotated_filepath(image)
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"❌ File not found: {image_path}")
+
+        img = Image.open(image_path)
+        img = ImageOps.exif_transpose(img)
+
+        # Берём метаданные из ЕДИНСТВЕННОГО ГЛОБАЛЬНОГО КЭША
+        final_metadata = _METADATA_CACHE.copy()
+
+        # Fallback: если кэш пуст — читаем напрямую
+        if not final_metadata:
+            try:
+                raw_meta = self._extract_png_metadata(img)
+                final_metadata = self._parse_metadata(raw_meta)
+                print(f"⚠️ [LoadImageWithMetadata] Fallback: loaded metadata directly from {image}")
+            except Exception as e:
+                print(f"⚠️ [LoadImageWithMetadata] Failed to load metadata: {e}")
+                final_metadata = {}
+
+        # Конвертируем изображение и маску
+        frame = img.convert("RGB")
+        image_np = np.array(frame).astype(np.float32) / 255.0
+        image_tensor = torch.from_numpy(image_np)[None,]
+
+        if 'A' in img.getbands():
+            mask_np = np.array(img.getchannel('A')).astype(np.float32) / 255.0
+            mask_tensor = 1.0 - torch.from_numpy(mask_np)
+            mask_tensor = mask_tensor.unsqueeze(0)
+        else:
+            h, w = image_np.shape[:2]
+            mask_tensor = torch.zeros((h, w), dtype=torch.float32)
+            mask_tensor = mask_tensor.unsqueeze(0)
+
+        metadata_json = json.dumps(final_metadata, ensure_ascii=False, indent=2)
+        metadata_value = final_metadata.get(extract_key.strip(), "") if extract_key.strip() else ""
+
+        print(f"✅ [LoadImageWithMetadata] Loaded: {image}")
+        print(f"   Size: {img.width}x{img.height} ({img.mode})")
+        print(f"   Final metadata keys: {list(final_metadata.keys())}")
+        if extract_key.strip():
+            preview = str(metadata_value)[:80] + "..." if len(str(metadata_value)) > 80 else str(metadata_value)
+            print(f"   Key '{extract_key}': {preview}")
+
+        return (image_tensor, mask_tensor, metadata_json, metadata_value)
+
+    def _extract_png_metadata(self, img):
+        return _extract_png_metadata_static(img)
+
+    def _parse_metadata(self, raw_metadata):
+        return _parse_metadata_static(raw_metadata)
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, image, extract_key=""):
+        if not folder_paths.exists_annotated_filepath(image):
+            return "Invalid image file: {}".format(image)
+        return True

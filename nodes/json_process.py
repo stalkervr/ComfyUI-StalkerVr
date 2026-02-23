@@ -4,6 +4,8 @@ import traceback
 import random
 import re
 
+
+from typing import Tuple
 from pathlib import Path
 from .constants import CATEGORY_PREFIX
 
@@ -755,6 +757,95 @@ class JsonMinify:
                 return (error_msg,)
 
 
+# class JsonFieldValueExtractor:
+#     """
+#     JsonFieldValueExtractor
+#     ------------------------
+#     Extracts a field value from a JSON string and returns it with its original type.
+#     Supports nested keys using dot notation (e.g., 'parent.child.key').
+#     Includes passthrough output for chaining multiple extractions in pipeline.
+#     """
+#
+#     @classmethod
+#     def INPUT_TYPES(cls):
+#         return {
+#             "required": {
+#                 "json_string": ("STRING", {
+#                     "multiline": False,
+#                     "default": "{\n"
+#                                "  \"name\": \"Harley\",\n"
+#                                "  \"age\": 25,\n"
+#                                "  \"power\": 9.5,\n"
+#                                "  \"info\": {\"city\": \"Gotham\", \"zip\": \"10001\"},\n"
+#                                "  \"tags\": [\"psycho\", \"funny\", \"dangerous\"],\n"
+#                                "  \"scores\": [1, 2.5, 3, 4]\n"
+#                                "}"
+#                 }),
+#                 "key": ("STRING", {
+#                     "default": "info.city",
+#                     "multiline": False,
+#                     "tooltip": "Field key to extract (supports dot notation: parent.child.key)"
+#                 }),
+#             }
+#         }
+#
+#     RETURN_TYPES = (Everything("*"), "STRING")
+#     RETURN_NAMES = ("value", "json_passthrough")
+#     FUNCTION = "extract_value"
+#     CATEGORY = f"{CATEGORY_PREFIX}/JSON"
+#     DESCRIPTION = """
+# Extracts a field value from JSON string with original type preservation.
+# - Supports nested keys using dot notation (e.g., 'parent.child.key')
+# - Returns value with its original type (string, number, boolean, list, object, null)
+# - Passthrough output is exact copy of input (not changed)
+# """
+#
+#     def extract_value(self, json_string, key):
+#         # Passthrough is exact copy of input - no manipulation
+#         json_passthrough = json_string
+#
+#         try:
+#             # Parse JSON string
+#             data = json.loads(json_string)
+#
+#             # Handle empty key - return the entire JSON object
+#             if not key or not key.strip():
+#                 return (data, json_passthrough)
+#
+#             # Navigate through nested keys using dot notation
+#             keys = [k for k in key.split(".") if k.strip()]
+#
+#             if not keys:
+#                 return (data, json_passthrough)
+#
+#             current_value = data
+#
+#             # Traverse the nested structure
+#             for i, current_key in enumerate(keys):
+#                 if isinstance(current_value, dict):
+#                     if current_key in current_value:
+#                         current_value = current_value[current_key]
+#                     else:
+#                         error_msg = f"[ERROR] Key '{current_key}' not found in path '{'.'.join(keys[:i + 1])}'"
+#                         print(f"❌ [JsonFieldValueExtractor] {error_msg}")
+#                         return (None, json_passthrough)
+#                 else:
+#                     error_msg = f"[ERROR] Cannot access key '{current_key}' - current value is {type(current_value).__name__} not dict"
+#                     print(f"❌ [JsonFieldValueExtractor] {error_msg}")
+#                     return (None, json_passthrough)
+#
+#             return (current_value, json_passthrough)
+#
+#         except json.JSONDecodeError as e:
+#             error_msg = f"[ERROR] Invalid JSON format: {str(e)}"
+#             print(f"❌ [JsonFieldValueExtractor] {error_msg}")
+#             return (None, json_passthrough)
+#         except Exception as e:
+#             error_msg = f"[ERROR] Unexpected error: {str(e)}"
+#             print(f"❌ [JsonFieldValueExtractor] {error_msg}")
+#             return (None, json_passthrough)
+
+
 class JsonFieldValueExtractor:
     """
     JsonFieldValueExtractor
@@ -799,47 +890,63 @@ Extracts a field value from JSON string with original type preservation.
 """
 
     def extract_value(self, json_string, key):
+        print(f"[JsonFieldValueExtractor] 🔍 Input JSON length: {len(json_string)}")
+        if len(json_string) > 200:
+            print(f"[JsonFieldValueExtractor] 📥 JSON preview (first/last 100): {repr(json_string[:100])} ... {repr(json_string[-100:])}")
+        else:
+            print(f"[JsonFieldValueExtractor] 📥 Full JSON input: {repr(json_string)}")
+
+        print(f"[JsonFieldValueExtractor] 🔑 Key to extract: '{key}'")
+
         # Passthrough is exact copy of input - no manipulation
         json_passthrough = json_string
 
         try:
             # Parse JSON string
             data = json.loads(json_string)
+            print("[JsonFieldValueExtractor] ✅ JSON parsed successfully")
 
             # Handle empty key - return the entire JSON object
             if not key or not key.strip():
+                print("[JsonFieldValueExtractor] ⚠️ Empty key — returning full JSON object")
                 return (data, json_passthrough)
 
             # Navigate through nested keys using dot notation
             keys = [k for k in key.split(".") if k.strip()]
+            print(f"[JsonFieldValueExtractor] 🧭 Parsed key path: {keys}")
 
             if not keys:
+                print("[JsonFieldValueExtractor] ⚠️ No valid keys after parsing — returning full JSON object")
                 return (data, json_passthrough)
 
             current_value = data
 
             # Traverse the nested structure
             for i, current_key in enumerate(keys):
+                print(f"[JsonFieldValueExtractor] 🔎 Step {i+1}/{len(keys)}: accessing key '{current_key}'")
                 if isinstance(current_value, dict):
                     if current_key in current_value:
                         current_value = current_value[current_key]
+                        print(f"[JsonFieldValueExtractor] ➡️ Found value: {type(current_value).__name__} = {repr(current_value)[:100]}")
                     else:
-                        error_msg = f"[ERROR] Key '{current_key}' not found in path '{'.'.join(keys[:i + 1])}'"
+                        error_msg = f"Key '{current_key}' not found in path '{'.'.join(keys[:i + 1])}'"
                         print(f"❌ [JsonFieldValueExtractor] {error_msg}")
                         return (None, json_passthrough)
                 else:
-                    error_msg = f"[ERROR] Cannot access key '{current_key}' - current value is {type(current_value).__name__} not dict"
+                    error_msg = f"Cannot access key '{current_key}' — current value is {type(current_value).__name__}, not a dict"
                     print(f"❌ [JsonFieldValueExtractor] {error_msg}")
                     return (None, json_passthrough)
 
+            print(f"[JsonFieldValueExtractor] ✅ Successfully extracted value: {type(current_value).__name__} = {repr(current_value)}")
             return (current_value, json_passthrough)
 
         except json.JSONDecodeError as e:
-            error_msg = f"[ERROR] Invalid JSON format: {str(e)}"
+            error_msg = f"Invalid JSON format: {str(e)}"
             print(f"❌ [JsonFieldValueExtractor] {error_msg}")
+            print(f"[JsonFieldValueExtractor] 💥 Error at char {e.pos} (line {e.lineno}, col {e.colno})")
             return (None, json_passthrough)
         except Exception as e:
-            error_msg = f"[ERROR] Unexpected error: {str(e)}"
+            error_msg = f"Unexpected error: {str(e)}"
             print(f"❌ [JsonFieldValueExtractor] {error_msg}")
             return (None, json_passthrough)
 
@@ -918,3 +1025,185 @@ class JsonPairInput:
                 pass
 
         return val
+
+
+
+class FixJson:
+    """
+    FixJson
+    -----------
+    Repairs malformed JSON strings, especially those generated by LLMs.
+    - Strips markdown fences
+    - Extracts innermost {...} block
+    - Fixes missing closing braces
+    - Removes trailing commas
+    Returns valid JSON or original if repair fails.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {},
+            "optional": {
+                "json_string": (Everything("*"), {"default": ""}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "BOOLEAN")
+    RETURN_NAMES = ("fixed_json", "is_valid")
+    FUNCTION = "fix_json"
+    CATEGORY = f"{CATEGORY_PREFIX}/Utils"
+
+    def fix_json(self, json_string="") -> Tuple[str, bool]:
+        print(f"[FixJson] 🔍 Input type: {type(json_string)}")
+        if isinstance(json_string, str):
+            print(f"[FixJson] 📥 Raw input preview (first 100): {repr(json_string[:100])}")
+        else:
+            print(f"[FixJson] 📥 Non-string input: {json_string}")
+
+        if json_string is None:
+            input_str = ""
+        elif not isinstance(json_string, str):
+            input_str = str(json_string)
+        else:
+            input_str = json_string
+
+        if not input_str.strip():
+            return ("", False)
+
+        try:
+            # 🔥 Основной метод восстановления
+            parsed = self._extract_and_repair_json(input_str)
+            result = json.dumps(parsed, ensure_ascii=False, indent=2)
+            print("[FixJson] ✅ Successfully repaired JSON")
+            return (result, True)
+        except Exception as e:
+            print(f"[FixJson] 💥 Repair failed: {e}")
+            return (input_str, False)
+
+    def _extract_and_repair_json(self, raw_text: str):
+        # 1. Удаляем markdown fences
+        cleaned = re.sub(r'^```json\s*', '', raw_text.strip(), flags=re.MULTILINE)
+        cleaned = re.sub(r'\s*```$', '', cleaned, flags=re.MULTILINE)
+
+        # 2. Находим первую {и последнюю}
+        start = cleaned.find('{')
+        end = cleaned.rfind('}')
+
+        if start == -1 or end == -1 or end <= start:
+            raise ValueError("No JSON object found")
+
+        candidate = cleaned[start:end + 1]
+
+        # 3. Пробуем распарсить как есть
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass
+
+        # 4. Восстанавливаем скобки
+        opens = candidate.count('{')
+        closes = candidate.count('}')
+        diff = opens - closes
+        if diff > 0:
+            candidate += '}' * diff
+
+        # 5. Убираем лишние запятые перед закрывающими скобками
+        candidate = re.sub(r',\s*}', '}', candidate)
+        candidate = re.sub(r',\s*]', ']', candidate)
+
+        # 6. Финальная попытка
+        return json.loads(candidate)
+
+
+class JsonToPromptNode:
+    """
+    JsonToPromptNode
+    ----------------
+    Converts a JSON object into a natural language prompt paragraph.
+    Supports both STRING (JSON text) and DICT inputs.
+    Missing fields are gracefully skipped.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "json_input": (Everything("*"), {"default": ""}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("prompt",)
+    FUNCTION = "build_prompt"
+    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
+
+    def build_prompt(self, json_input="") -> Tuple[str]:
+        # Convert input to dict if needed
+        if isinstance(json_input, str):
+            if not json_input.strip():
+                return ("",)
+            try:
+                data = json.loads(json_input)
+            except json.JSONDecodeError as e:
+                print(f"❌ [JsonToPromptNode] Invalid JSON: {e}")
+                return ("",)
+        elif isinstance(json_input, dict):
+            data = json_input
+        else:
+            print(f"⚠️ [JsonToPromptNode] Unsupported input type: {type(json_input)}")
+            return ("",)
+
+        # Helper to safely get field or empty string
+        def get_field(key: str) -> str:
+            return str(data.get(key, "")).strip()
+
+        # Extract fields
+        style = get_field("style")
+        subject = get_field("subject")
+        physique = get_field("physique")
+        pose = get_field("pose")
+        top_clothes = get_field("top_clothes")
+        bottom_clothes = get_field("bottom_clothes")
+        accessories = get_field("accessories")
+        footwear = get_field("footwear")
+        background = get_field("background")
+        lighting = get_field("lighting")
+        quality = get_field("quality")
+
+        # Build parts only if field is non-empty
+        parts = []
+
+        if style and subject:
+            parts.append(f"{style} of {subject}")
+        elif subject:
+            parts.append(subject)
+
+        if physique:
+            parts.append(physique)
+        if pose:
+            parts.append(pose)
+        if top_clothes:
+            parts.append(f"wearing {top_clothes}")
+        if bottom_clothes:
+            parts.append(f"paired with {bottom_clothes}")
+        if accessories:
+            parts.append(f"accessorized with {accessories}")
+        if footwear:
+            parts.append(f"and {footwear}")
+        if background:
+            parts.append(f"Set in {background}")
+        if lighting:
+            parts.append(f"with {lighting}")
+        if quality:
+            parts.append(f"characterized by {quality}")
+
+        # Join with commas and add period at the end
+        if not parts:
+            return ("",)
+
+        prompt = ", ".join(parts)
+        if not prompt.endswith("."):
+            prompt += "."
+
+        return (prompt,)

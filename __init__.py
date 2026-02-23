@@ -37,7 +37,9 @@ from .nodes.json_process import (
     JsonFormat,
     JsonMinify,
     JsonPairInput,
-    JsonFieldValueExtractor
+    JsonFieldValueExtractor,
+    FixJson,
+    JsonToPromptNode
 )
 
 from .nodes.batch_process import (
@@ -108,6 +110,8 @@ NODE_CLASS_MAPPINGS = {
     "JsonMinify": JsonMinify,
     "JsonPairInput": JsonPairInput,
     "JsonFieldValueExtractor": JsonFieldValueExtractor,
+    "FixJson": FixJson,
+    "JsonToPromptNode": JsonToPromptNode,
 
     "LoopAny": LoopAny,
     "AnyCollector": AnyCollector,
@@ -163,6 +167,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "JsonMinify": "🪛 JSON → Minify",
     "JsonFieldValueExtractor": "🪛 JSON → Field Value Extractor",
     "JsonPairInput": "🪛 JSON → Pair Input",
+    "FixJson": "🪛 JSON → Fix",
+    "JsonToPromptNode": "🪛 JSON → To Flat Prompt",
 
     "LoopAny": "🪛 Loop Any",
     "ListItemExtractor": "🪛 List Item Extractor",

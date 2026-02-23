@@ -1,4 +1,3 @@
-import { api } from "../../../scripts/api.js";
 import { app } from "../../../scripts/app.js";
 
 // Имя ноды, которую мы хотим модифицировать (должно совпадать с именем Python-класса)
