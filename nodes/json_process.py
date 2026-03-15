@@ -3,6 +3,8 @@ import os
 import traceback
 import random
 import re
+import hashlib
+
 
 
 from typing import Tuple
@@ -138,7 +140,6 @@ class JsonFieldRemover:
 
 
 class JsonFieldReplaceAdvanced:
-
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -146,6 +147,7 @@ class JsonFieldReplaceAdvanced:
                 "json_string": ("STRING", {"multiline": False}),
                 "key": ("STRING", {"default": ""}),   # путь: a.b.c или arr.1.name
                 "value": ("STRING", {"default": ""}),
+                "extend_value": ("BOOLEAN", {"default": False}),
             }
         }
 
@@ -153,7 +155,12 @@ class JsonFieldReplaceAdvanced:
     RETURN_NAMES = ("json_string",)
     FUNCTION = "replace_field"
     CATEGORY = f"{CATEGORY_PREFIX}/JSON"
-    DESCRIPTION = "Add new field in JSON or replace exists field value"
+    DESCRIPTION = (
+        "Add new field in JSON or replace exists field value.\n"
+        "If 'extend_value' is True and field exists, it will be extended as:\n"
+        "'new_value, existing_value'.\n"
+        "Skips if value is empty."
+    )
 
     def cast_value(self, value: str):
         v = value.strip()
@@ -179,7 +186,22 @@ class JsonFieldReplaceAdvanced:
 
         return value
 
-    def set_by_path(self, data, path_parts, value):
+    def get_by_path(self, data, path_parts):
+        """Helper to safely get value by path."""
+        obj = data
+        for part in path_parts:
+            if part.isdigit():
+                idx = int(part)
+                if not isinstance(obj, list) or idx >= len(obj):
+                    return None
+                obj = obj[idx]
+            else:
+                if not isinstance(obj, dict) or part not in obj:
+                    return None
+                obj = obj[part]
+        return obj
+
+    def set_by_path(self, data, path_parts, value, extend=False):
         obj = data
 
         for i, part in enumerate(path_parts):
@@ -195,7 +217,14 @@ class JsonFieldReplaceAdvanced:
                     obj.append({})
 
                 if is_last:
-                    obj[idx] = value
+                    if extend and idx < len(obj) and obj[idx] is not None:
+                        existing = obj[idx]
+                        if isinstance(existing, str) and isinstance(value, str):
+                            obj[idx] = f"{value}, {existing}"
+                        else:
+                            obj[idx] = value
+                    else:
+                        obj[idx] = value
                 else:
                     if not isinstance(obj[idx], (dict, list)):
                         obj[idx] = {}
@@ -203,73 +232,64 @@ class JsonFieldReplaceAdvanced:
 
             else:
                 if is_last:
-                    obj[part] = value
+                    if extend and part in obj:
+                        existing = obj[part]
+                        if isinstance(existing, str) and isinstance(value, str):
+                            obj[part] = f"{value}, {existing}"
+                        else:
+                            obj[part] = value
+                    else:
+                        obj[part] = value
                 else:
                     if part not in obj or not isinstance(obj[part], (dict, list)):
                         obj[part] = {}
                     obj = obj[part]
 
-    def replace_field(self, json_string, key, value):
+    def replace_field(self, json_string, key, value, extend_value):
+        # Пропускаем, если значение для записи пустое
+        if not value.strip():
+            return (json_string,)
 
-        try:
-            data = json.loads(json_string)
-        except Exception as e:
-            return (f"JSON parse error: {str(e)}",)
+        # 🔑 Обрабатываем вход: может быть строкой ИЛИ уже словарём
+        if isinstance(json_string, str):
+            input_str = json_string.strip()
+            if not input_str:
+                return ('',)  # или '{}', если хотите начинать с пустого объекта
+            try:
+                data = json.loads(input_str)
+            except json.JSONDecodeError as e:
+                # Если не JSON — возможно, это repr(dict) с одинарными кавычками
+                try:
+                    import ast
+                    data = ast.literal_eval(input_str)
+                    if not isinstance(data, dict):
+                        raise ValueError("Not a dict")
+                except Exception:
+                    return (f"JSON parse error: {str(e)}",)
+        elif isinstance(json_string, dict):
+            data = json_string.copy()
+        else:
+            return ("Input is neither string nor dict",)
 
-        if not key:
+        # Далее — обычная логика
+        if not key.strip():
             return (json.dumps(data, ensure_ascii=False, indent=4),)
 
-        casted = self.cast_value(value)
-        path_parts = key.split(".")
-
+        # Попытка парсить value как JSON, иначе cast_value
+        casted = value
         try:
-            self.set_by_path(data, path_parts, casted)
+            parsed_val = json.loads(value)
+            casted = parsed_val
+        except (json.JSONDecodeError, TypeError):
+            casted = self.cast_value(value)
+
+        path_parts = key.split(".")
+        try:
+            self.set_by_path(data, path_parts, casted, extend=extend_value)
         except Exception as e:
             return (f"Path set error: {str(e)}",)
 
-        formatted = json.dumps(data, ensure_ascii=False, indent=4)
-
-        return (formatted,)
-
-
-class JsonToString:
-    """
-    Node: JsonToStringNode
-    Converts JSON to a formatted string.
-    """
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "json_input": ("STRING", {"multiline": False}),
-                "new_line": ("BOOLEAN", {"default": False}),
-            }
-        }
-
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("string",)
-    FUNCTION = "process"
-    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
-    DESCRIPTION = "Converts JSON to a formatted string."
-
-    def process(self, json_input, new_line=False):
-        import json_process
-
-        try:
-            data = json.loads(json_input)
-        except Exception as e:
-            return (f"Error parsing JSON: {e}",)
-
-        if isinstance(data, dict):
-            if new_line:
-                result = "\n".join(f"{k}: {v}" for k, v in data.items())
-            else:
-                result = ", ".join(f"{k}: {v}" for k, v in data.items())
-        else:
-            result = json.dumps(data, ensure_ascii=False, indent=2 if new_line else None)
-
-        return (result,)
+        return (json.dumps(data, ensure_ascii=False, indent=4),)
 
 
 class JsonArraySplitter:
@@ -450,99 +470,99 @@ according to the rules:
             return (" ".join(values),)
 
 
-class JsonPathLoader:
-    """
-    Loads all JSON files from a folder on each execution.
-    Adds a random reload_trigger to force reloading every time.
-    Dynamically infers output type (like LoopAny).
-    """
-
-    LOG_TAG = "[JsonPathLoader]"
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "folder_path": ("STRING", {"multiline": False, "default": ""}),
-                "reload_trigger": ("INT", {"default": 0}),  # auto-generated random value
-            },
-        }
-
-    RETURN_TYPES = (Everything("*"),)
-    RETURN_NAMES = ("output",)
-    OUTPUT_IS_LIST = (True,)
-    FUNCTION = "load"
-    CATEGORY = f"{CATEGORY_PREFIX}/JSON"
-    DESCRIPTION = """
-Loads all JSON files from a folder on each execution.
-Adds a random reload_trigger to force reloading every time.
-Dynamically infers output type (like LoopAny).
-"""
-
-    def _infer_and_set_return_type(self, items):
-        if not items:
-            self.RETURN_TYPES = (Everything("*"),)
-            return
-
-        all_int = all(isinstance(v, int) and not isinstance(v, bool) for v in items)
-        all_float = all(isinstance(v, float) for v in items)
-        all_str = all(isinstance(v, str) for v in items)
-
-        if all_int:
-            self.RETURN_TYPES = ("INT",)
-        elif all_float:
-            self.RETURN_TYPES = ("FLOAT",)
-        elif all_str:
-            self.RETURN_TYPES = ("STRING",)
-        else:
-            self.RETURN_TYPES = (Everything("*"),)
-
-    def load(self, folder_path, reload_trigger=None):
-
-        if reload_trigger is None:
-            reload_trigger = random.randint(0, 1_000_000)
-
-        print(f"\n")
-        print(f"{self.LOG_TAG} Generated reload_trigger: {reload_trigger}")
-
-        folder = Path(folder_path)
-        output_list = []
-
-        print(f"{self.LOG_TAG} -> Start JSON directory scan")
-        print(f"{self.LOG_TAG} Directory: {folder_path}\n")
-
-        if not folder.exists() or not folder.is_dir():
-            print(f"{self.LOG_TAG} ERROR: folder does not exist or is not a directory")
-            self.RETURN_TYPES = (Everything("*"),)
-            return ([],)
-
-        for file in folder.glob("*.json"):
-            try:
-                file_path = str(file)
-                size_kb = round(os.path.getsize(file) / 1024, 2)
-
-                print(f"{self.LOG_TAG} File found: {file_path}")
-                print(f"{self.LOG_TAG} Size: {size_kb} KB")
-
-                raw_text = file.read_text(encoding="utf-8")
-                json_len = len(raw_text)
-                print(f"{self.LOG_TAG} JSON length: {json_len} chars")
-
-                parsed = json.loads(raw_text)
-                formatted = json.dumps(parsed, ensure_ascii=False, indent=4)
-
-                output_list.append(formatted)
-                print(f"{self.LOG_TAG} Loaded successfully\n")
-
-            except Exception as e:
-                print(f"{self.LOG_TAG} ERROR reading file {file.name}: {e}")
-                traceback.print_exc()
-
-        print(f"{self.LOG_TAG} -> Finished JSON directory scan")
-        print(f"\n")
-
-        self._infer_and_set_return_type(output_list)
-        return (output_list,)
+# class JsonPathLoader:
+#     """
+#     Loads all JSON files from a folder on each execution.
+#     Adds a random reload_trigger to force reloading every time.
+#     Dynamically infers output type (like LoopAny).
+#     """
+#
+#     LOG_TAG = "[JsonPathLoader]"
+#
+#     @classmethod
+#     def INPUT_TYPES(cls):
+#         return {
+#             "required": {
+#                 "folder_path": ("STRING", {"multiline": False, "default": ""}),
+#                 "reload_trigger": ("INT", {"default": 0}),  # auto-generated random value
+#             },
+#         }
+#
+#     RETURN_TYPES = (Everything("*"),)
+#     RETURN_NAMES = ("output",)
+#     OUTPUT_IS_LIST = (True,)
+#     FUNCTION = "load"
+#     CATEGORY = f"{CATEGORY_PREFIX}/JSON"
+#     DESCRIPTION = """
+# Loads all JSON files from a folder on each execution.
+# Adds a random reload_trigger to force reloading every time.
+# Dynamically infers output type (like LoopAny).
+# """
+#
+#     def _infer_and_set_return_type(self, items):
+#         if not items:
+#             self.RETURN_TYPES = (Everything("*"),)
+#             return
+#
+#         all_int = all(isinstance(v, int) and not isinstance(v, bool) for v in items)
+#         all_float = all(isinstance(v, float) for v in items)
+#         all_str = all(isinstance(v, str) for v in items)
+#
+#         if all_int:
+#             self.RETURN_TYPES = ("INT",)
+#         elif all_float:
+#             self.RETURN_TYPES = ("FLOAT",)
+#         elif all_str:
+#             self.RETURN_TYPES = ("STRING",)
+#         else:
+#             self.RETURN_TYPES = (Everything("*"),)
+#
+#     def load(self, folder_path, reload_trigger=None):
+#
+#         if reload_trigger is None:
+#             reload_trigger = random.randint(0, 1_000_000)
+#
+#         print(f"\n")
+#         print(f"{self.LOG_TAG} Generated reload_trigger: {reload_trigger}")
+#
+#         folder = Path(folder_path)
+#         output_list = []
+#
+#         print(f"{self.LOG_TAG} -> Start JSON directory scan")
+#         print(f"{self.LOG_TAG} Directory: {folder_path}\n")
+#
+#         if not folder.exists() or not folder.is_dir():
+#             print(f"{self.LOG_TAG} ERROR: folder does not exist or is not a directory")
+#             self.RETURN_TYPES = (Everything("*"),)
+#             return ([],)
+#
+#         for file in folder.glob("*.json"):
+#             try:
+#                 file_path = str(file)
+#                 size_kb = round(os.path.getsize(file) / 1024, 2)
+#
+#                 print(f"{self.LOG_TAG} File found: {file_path}")
+#                 print(f"{self.LOG_TAG} Size: {size_kb} KB")
+#
+#                 raw_text = file.read_text(encoding="utf-8")
+#                 json_len = len(raw_text)
+#                 print(f"{self.LOG_TAG} JSON length: {json_len} chars")
+#
+#                 parsed = json.loads(raw_text)
+#                 formatted = json.dumps(parsed, ensure_ascii=False, indent=4)
+#
+#                 output_list.append(formatted)
+#                 print(f"{self.LOG_TAG} Loaded successfully\n")
+#
+#             except Exception as e:
+#                 print(f"{self.LOG_TAG} ERROR reading file {file.name}: {e}")
+#                 traceback.print_exc()
+#
+#         print(f"{self.LOG_TAG} -> Finished JSON directory scan")
+#         print(f"\n")
+#
+#         self._infer_and_set_return_type(output_list)
+#         return (output_list,)
 
 
 class JsonSerializeObject:
@@ -757,95 +777,6 @@ class JsonMinify:
                 return (error_msg,)
 
 
-# class JsonFieldValueExtractor:
-#     """
-#     JsonFieldValueExtractor
-#     ------------------------
-#     Extracts a field value from a JSON string and returns it with its original type.
-#     Supports nested keys using dot notation (e.g., 'parent.child.key').
-#     Includes passthrough output for chaining multiple extractions in pipeline.
-#     """
-#
-#     @classmethod
-#     def INPUT_TYPES(cls):
-#         return {
-#             "required": {
-#                 "json_string": ("STRING", {
-#                     "multiline": False,
-#                     "default": "{\n"
-#                                "  \"name\": \"Harley\",\n"
-#                                "  \"age\": 25,\n"
-#                                "  \"power\": 9.5,\n"
-#                                "  \"info\": {\"city\": \"Gotham\", \"zip\": \"10001\"},\n"
-#                                "  \"tags\": [\"psycho\", \"funny\", \"dangerous\"],\n"
-#                                "  \"scores\": [1, 2.5, 3, 4]\n"
-#                                "}"
-#                 }),
-#                 "key": ("STRING", {
-#                     "default": "info.city",
-#                     "multiline": False,
-#                     "tooltip": "Field key to extract (supports dot notation: parent.child.key)"
-#                 }),
-#             }
-#         }
-#
-#     RETURN_TYPES = (Everything("*"), "STRING")
-#     RETURN_NAMES = ("value", "json_passthrough")
-#     FUNCTION = "extract_value"
-#     CATEGORY = f"{CATEGORY_PREFIX}/JSON"
-#     DESCRIPTION = """
-# Extracts a field value from JSON string with original type preservation.
-# - Supports nested keys using dot notation (e.g., 'parent.child.key')
-# - Returns value with its original type (string, number, boolean, list, object, null)
-# - Passthrough output is exact copy of input (not changed)
-# """
-#
-#     def extract_value(self, json_string, key):
-#         # Passthrough is exact copy of input - no manipulation
-#         json_passthrough = json_string
-#
-#         try:
-#             # Parse JSON string
-#             data = json.loads(json_string)
-#
-#             # Handle empty key - return the entire JSON object
-#             if not key or not key.strip():
-#                 return (data, json_passthrough)
-#
-#             # Navigate through nested keys using dot notation
-#             keys = [k for k in key.split(".") if k.strip()]
-#
-#             if not keys:
-#                 return (data, json_passthrough)
-#
-#             current_value = data
-#
-#             # Traverse the nested structure
-#             for i, current_key in enumerate(keys):
-#                 if isinstance(current_value, dict):
-#                     if current_key in current_value:
-#                         current_value = current_value[current_key]
-#                     else:
-#                         error_msg = f"[ERROR] Key '{current_key}' not found in path '{'.'.join(keys[:i + 1])}'"
-#                         print(f"❌ [JsonFieldValueExtractor] {error_msg}")
-#                         return (None, json_passthrough)
-#                 else:
-#                     error_msg = f"[ERROR] Cannot access key '{current_key}' - current value is {type(current_value).__name__} not dict"
-#                     print(f"❌ [JsonFieldValueExtractor] {error_msg}")
-#                     return (None, json_passthrough)
-#
-#             return (current_value, json_passthrough)
-#
-#         except json.JSONDecodeError as e:
-#             error_msg = f"[ERROR] Invalid JSON format: {str(e)}"
-#             print(f"❌ [JsonFieldValueExtractor] {error_msg}")
-#             return (None, json_passthrough)
-#         except Exception as e:
-#             error_msg = f"[ERROR] Unexpected error: {str(e)}"
-#             print(f"❌ [JsonFieldValueExtractor] {error_msg}")
-#             return (None, json_passthrough)
-
-
 class JsonFieldValueExtractor:
     """
     JsonFieldValueExtractor
@@ -890,64 +821,40 @@ Extracts a field value from JSON string with original type preservation.
 """
 
     def extract_value(self, json_string, key):
-        print(f"[JsonFieldValueExtractor] 🔍 Input JSON length: {len(json_string)}")
-        if len(json_string) > 200:
-            print(f"[JsonFieldValueExtractor] 📥 JSON preview (first/last 100): {repr(json_string[:100])} ... {repr(json_string[-100:])}")
-        else:
-            print(f"[JsonFieldValueExtractor] 📥 Full JSON input: {repr(json_string)}")
-
-        print(f"[JsonFieldValueExtractor] 🔑 Key to extract: '{key}'")
-
         # Passthrough is exact copy of input - no manipulation
         json_passthrough = json_string
 
         try:
             # Parse JSON string
             data = json.loads(json_string)
-            print("[JsonFieldValueExtractor] ✅ JSON parsed successfully")
 
             # Handle empty key - return the entire JSON object
             if not key or not key.strip():
-                print("[JsonFieldValueExtractor] ⚠️ Empty key — returning full JSON object")
                 return (data, json_passthrough)
 
             # Navigate through nested keys using dot notation
             keys = [k for k in key.split(".") if k.strip()]
-            print(f"[JsonFieldValueExtractor] 🧭 Parsed key path: {keys}")
 
             if not keys:
-                print("[JsonFieldValueExtractor] ⚠️ No valid keys after parsing — returning full JSON object")
                 return (data, json_passthrough)
 
             current_value = data
 
             # Traverse the nested structure
             for i, current_key in enumerate(keys):
-                print(f"[JsonFieldValueExtractor] 🔎 Step {i+1}/{len(keys)}: accessing key '{current_key}'")
                 if isinstance(current_value, dict):
                     if current_key in current_value:
                         current_value = current_value[current_key]
-                        print(f"[JsonFieldValueExtractor] ➡️ Found value: {type(current_value).__name__} = {repr(current_value)[:100]}")
                     else:
-                        error_msg = f"Key '{current_key}' not found in path '{'.'.join(keys[:i + 1])}'"
-                        print(f"❌ [JsonFieldValueExtractor] {error_msg}")
                         return (None, json_passthrough)
                 else:
-                    error_msg = f"Cannot access key '{current_key}' — current value is {type(current_value).__name__}, not a dict"
-                    print(f"❌ [JsonFieldValueExtractor] {error_msg}")
                     return (None, json_passthrough)
 
-            print(f"[JsonFieldValueExtractor] ✅ Successfully extracted value: {type(current_value).__name__} = {repr(current_value)}")
             return (current_value, json_passthrough)
 
-        except json.JSONDecodeError as e:
-            error_msg = f"Invalid JSON format: {str(e)}"
-            print(f"❌ [JsonFieldValueExtractor] {error_msg}")
-            print(f"[JsonFieldValueExtractor] 💥 Error at char {e.pos} (line {e.lineno}, col {e.colno})")
+        except json.JSONDecodeError:
             return (None, json_passthrough)
-        except Exception as e:
-            error_msg = f"Unexpected error: {str(e)}"
-            print(f"❌ [JsonFieldValueExtractor] {error_msg}")
+        except Exception:
             return (None, json_passthrough)
 
 
@@ -1027,183 +934,181 @@ class JsonPairInput:
         return val
 
 
+class JsonPathLoader:
+    """
+    Loads all JSON files from a folder.
+    Cache is disabled - folder is rescanned on every execution.
+    Supports file sorting and quantity limits.
+    Dynamically infers output type.
+    """
 
-class FixJson:
-    """
-    FixJson
-    -----------
-    Repairs malformed JSON strings, especially those generated by LLMs.
-    - Strips markdown fences
-    - Extracts innermost {...} block
-    - Fixes missing closing braces
-    - Removes trailing commas
-    Returns valid JSON or original if repair fails.
-    """
+    LOG_TAG = "[JsonPathLoader]"
 
     @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {},
-            "optional": {
-                "json_string": (Everything("*"), {"default": ""}),
-            }
-        }
-
-    RETURN_TYPES = ("STRING", "BOOLEAN")
-    RETURN_NAMES = ("fixed_json", "is_valid")
-    FUNCTION = "fix_json"
-    CATEGORY = f"{CATEGORY_PREFIX}/Utils"
-
-    def fix_json(self, json_string="") -> Tuple[str, bool]:
-        print(f"[FixJson] 🔍 Input type: {type(json_string)}")
-        if isinstance(json_string, str):
-            print(f"[FixJson] 📥 Raw input preview (first 100): {repr(json_string[:100])}")
-        else:
-            print(f"[FixJson] 📥 Non-string input: {json_string}")
-
-        if json_string is None:
-            input_str = ""
-        elif not isinstance(json_string, str):
-            input_str = str(json_string)
-        else:
-            input_str = json_string
-
-        if not input_str.strip():
-            return ("", False)
-
-        try:
-            # 🔥 Основной метод восстановления
-            parsed = self._extract_and_repair_json(input_str)
-            result = json.dumps(parsed, ensure_ascii=False, indent=2)
-            print("[FixJson] ✅ Successfully repaired JSON")
-            return (result, True)
-        except Exception as e:
-            print(f"[FixJson] 💥 Repair failed: {e}")
-            return (input_str, False)
-
-    def _extract_and_repair_json(self, raw_text: str):
-        # 1. Удаляем markdown fences
-        cleaned = re.sub(r'^```json\s*', '', raw_text.strip(), flags=re.MULTILINE)
-        cleaned = re.sub(r'\s*```$', '', cleaned, flags=re.MULTILINE)
-
-        # 2. Находим первую {и последнюю}
-        start = cleaned.find('{')
-        end = cleaned.rfind('}')
-
-        if start == -1 or end == -1 or end <= start:
-            raise ValueError("No JSON object found")
-
-        candidate = cleaned[start:end + 1]
-
-        # 3. Пробуем распарсить как есть
-        try:
-            return json.loads(candidate)
-        except json.JSONDecodeError:
-            pass
-
-        # 4. Восстанавливаем скобки
-        opens = candidate.count('{')
-        closes = candidate.count('}')
-        diff = opens - closes
-        if diff > 0:
-            candidate += '}' * diff
-
-        # 5. Убираем лишние запятые перед закрывающими скобками
-        candidate = re.sub(r',\s*}', '}', candidate)
-        candidate = re.sub(r',\s*]', ']', candidate)
-
-        # 6. Финальная попытка
-        return json.loads(candidate)
-
-
-class JsonToPromptNode:
-    """
-    JsonToPromptNode
-    ----------------
-    Converts a JSON object into a natural language prompt paragraph.
-    Supports both STRING (JSON text) and DICT inputs.
-    Missing fields are gracefully skipped.
-    """
+    def IS_CHANGED(cls, **kwargs):
+        """
+        Always return random value to force re-execution.
+        This ensures folder contents are always fresh.
+        """
+        return random.random()
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "json_input": (Everything("*"), {"default": ""}),
-            }
+                "folder_path": ("STRING", {"multiline": False, "default": ""}),
+            },
+            "optional": {
+                "sort_by": (
+                ["name", "name_desc", "created", "created_desc", "modified", "modified_desc", "size", "size_desc"], {
+                    "default": "name",
+                    "label": "Sort By",
+                    "tooltip": "Sort files by: name, created date, modified date, or size (ascending or descending)"
+                }),
+                "limit": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 10000,
+                    "step": 1,
+                    "label": "File Limit",
+                    "tooltip": "Max number of files to load (0 = unlimited)"
+                }),
+            },
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("prompt",)
-    FUNCTION = "build_prompt"
+    RETURN_TYPES = (Everything("*"),)
+    RETURN_NAMES = ("output",)
+    OUTPUT_IS_LIST = (True,)
+    FUNCTION = "load"
     CATEGORY = f"{CATEGORY_PREFIX}/JSON"
+    DESCRIPTION = """
+🎯 Loads all JSON files from a folder.
 
-    def build_prompt(self, json_input="") -> Tuple[str]:
-        # Convert input to dict if needed
-        if isinstance(json_input, str):
-            if not json_input.strip():
-                return ("",)
-            try:
-                data = json.loads(json_input)
-            except json.JSONDecodeError as e:
-                print(f"❌ [JsonToPromptNode] Invalid JSON: {e}")
-                return ("",)
-        elif isinstance(json_input, dict):
-            data = json_input
+Features:
+- Cache disabled by default (always rescans folder)
+- Sort files by: name, created, modified, size (asc/desc)
+- Limit number of loaded files (0 = unlimited)
+- Dynamically infers output type (INT, FLOAT, STRING, or *)
+- Detailed logging for debugging
+
+Usage:
+- Files are always read fresh on every execution
+- Use for dynamic file collections that change during workflow
+- Set limit to control how many files to process
+"""
+
+    def _sort_files(self, files, sort_by):
+        """
+        Sort files based on criteria.
+        Args:
+            files: List of Path objects
+            sort_by: Sort criteria string
+        Returns:
+            Sorted list of Path objects
+        """
+        if sort_by == "name":
+            return sorted(files, key=lambda f: f.name.lower())
+        elif sort_by == "name_desc":
+            return sorted(files, key=lambda f: f.name.lower(), reverse=True)
+        elif sort_by == "created":
+            return sorted(files, key=lambda f: f.stat().st_ctime)
+        elif sort_by == "created_desc":
+            return sorted(files, key=lambda f: f.stat().st_ctime, reverse=True)
+        elif sort_by == "modified":
+            return sorted(files, key=lambda f: f.stat().st_mtime)
+        elif sort_by == "modified_desc":
+            return sorted(files, key=lambda f: f.stat().st_mtime, reverse=True)
+        elif sort_by == "size":
+            return sorted(files, key=lambda f: f.stat().st_size)
+        elif sort_by == "size_desc":
+            return sorted(files, key=lambda f: f.stat().st_size, reverse=True)
         else:
-            print(f"⚠️ [JsonToPromptNode] Unsupported input type: {type(json_input)}")
-            return ("",)
+            return sorted(files, key=lambda f: f.name.lower())
 
-        # Helper to safely get field or empty string
-        def get_field(key: str) -> str:
-            return str(data.get(key, "")).strip()
+    def _infer_return_type(self, items):
+        """
+        Infer return type from loaded items.
+        Args:
+            items: List of loaded JSON content strings
+        Returns:
+            Tuple with appropriate ComfyUI type
+        """
+        if not items:
+            return (Everything("*"),)
 
-        # Extract fields
-        style = get_field("style")
-        subject = get_field("subject")
-        physique = get_field("physique")
-        pose = get_field("pose")
-        top_clothes = get_field("top_clothes")
-        bottom_clothes = get_field("bottom_clothes")
-        accessories = get_field("accessories")
-        footwear = get_field("footwear")
-        background = get_field("background")
-        lighting = get_field("lighting")
-        quality = get_field("quality")
+        all_int = all(isinstance(v, int) and not isinstance(v, bool) for v in items)
+        all_float = all(isinstance(v, float) for v in items)
+        all_str = all(isinstance(v, str) for v in items)
 
-        # Build parts only if field is non-empty
-        parts = []
+        if all_int:
+            return ("INT",)
+        elif all_float:
+            return ("FLOAT",)
+        elif all_str:
+            return ("STRING",)
+        else:
+            return (Everything("*"),)
 
-        if style and subject:
-            parts.append(f"{style} of {subject}")
-        elif subject:
-            parts.append(subject)
+    def load(self, folder_path, sort_by="name", limit=0):
+        """
+        Load all JSON files from the specified folder.
+        Args:
+            folder_path: Path to folder containing JSON files
+            sort_by: Sort criteria (name, created, modified, size + _desc)
+            limit: Max number of files to load (0 = unlimited)
+        Returns:
+            Tuple with list of JSON content strings
+        """
+        print(f"\n{self.LOG_TAG} -> Start JSON directory scan")
+        print(f"{self.LOG_TAG} Directory: {folder_path}")
+        print(f"{self.LOG_TAG} Sort By: {sort_by}")
+        print(f"{self.LOG_TAG} Limit: {'unlimited' if limit == 0 else limit}\n")
 
-        if physique:
-            parts.append(physique)
-        if pose:
-            parts.append(pose)
-        if top_clothes:
-            parts.append(f"wearing {top_clothes}")
-        if bottom_clothes:
-            parts.append(f"paired with {bottom_clothes}")
-        if accessories:
-            parts.append(f"accessorized with {accessories}")
-        if footwear:
-            parts.append(f"and {footwear}")
-        if background:
-            parts.append(f"Set in {background}")
-        if lighting:
-            parts.append(f"with {lighting}")
-        if quality:
-            parts.append(f"characterized by {quality}")
+        folder = Path(folder_path)
 
-        # Join with commas and add period at the end
-        if not parts:
-            return ("",)
+        if not folder.exists() or not folder.is_dir():
+            print(f"{self.LOG_TAG} ERROR: folder does not exist or is not a directory")
+            self.RETURN_TYPES = (Everything("*"),)
+            return ([],)
 
-        prompt = ", ".join(parts)
-        if not prompt.endswith("."):
-            prompt += "."
+        json_files = list(folder.glob("*.json"))
+        total_files = len(json_files)
+        print(f"{self.LOG_TAG} Total JSON files found: {total_files}")
 
-        return (prompt,)
+        sorted_files = self._sort_files(json_files, sort_by)
+        print(f"{self.LOG_TAG} Files sorted by: {sort_by}")
+
+        if limit > 0:
+            sorted_files = sorted_files[:limit]
+            print(f"{self.LOG_TAG} Limited to: {len(sorted_files)} files")
+
+        output_list = []
+
+        for file in sorted_files:
+            try:
+                file_path = str(file)
+                size_kb = round(os.path.getsize(file) / 1024, 2)
+
+                print(f"{self.LOG_TAG} File found: {file.name}")
+                print(f"{self.LOG_TAG} Size: {size_kb} KB")
+
+                raw_text = file.read_text(encoding="utf-8")
+                json_len = len(raw_text)
+                print(f"{self.LOG_TAG} JSON length: {json_len} chars")
+
+                parsed = json.loads(raw_text)
+                formatted = json.dumps(parsed, ensure_ascii=False, indent=4)
+
+                output_list.append(formatted)
+                print(f"{self.LOG_TAG} Loaded successfully\n")
+
+            except Exception as e:
+                print(f"{self.LOG_TAG} ERROR reading file {file.name}: {e}")
+                traceback.print_exc()
+
+        print(f"{self.LOG_TAG} -> Finished JSON directory scan")
+        print(f"{self.LOG_TAG} Total files loaded: {len(output_list)}\n")
+
+        self.RETURN_TYPES = self._infer_return_type(output_list)
+
+        return (output_list,)

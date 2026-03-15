@@ -524,11 +524,18 @@ class SaveImageWithMetadata:
             filename = f"{filename_prefix}_{current_number:05d}.png"
             save_path = output_dir / filename
 
-            # Convert tensor to PIL Image
+            # Convert tensor to PIL Image — with alpha channel support
             img_tensor = images[i]
             img_np = img_tensor.cpu().numpy()
             img_np = (img_np * 255.0).clip(0, 255).astype(np.uint8)
-            img_pil = Image.fromarray(img_np, mode="RGB")
+
+            # Определяем режим в зависимости от количества каналов
+            if img_np.shape[2] == 4:
+                img_pil = Image.fromarray(img_np, mode="RGBA")
+            elif img_np.shape[2] == 3:
+                img_pil = Image.fromarray(img_np, mode="RGB")
+            else:
+                raise ValueError(f"Unsupported number of channels: {img_np.shape[2]}")
 
             # Create PNG metadata container
             pnginfo = PngImagePlugin.PngInfo()
@@ -892,7 +899,28 @@ class LoadImageWithMetadata:
             mask_tensor = mask_tensor.unsqueeze(0)
 
         metadata_json = json.dumps(final_metadata, ensure_ascii=False, indent=2)
-        metadata_value = final_metadata.get(extract_key.strip(), "") if extract_key.strip() else ""
+
+        # 🔑 Извлечение значения по вложенному пути (например: "a.b.c")
+        metadata_value = ""
+        if extract_key.strip():
+            key_path = extract_key.strip().split(".")
+            current = final_metadata
+            try:
+                for part in key_path:
+                    if isinstance(current, dict) and part in current:
+                        current = current[part]
+                    else:
+                        current = None
+                        break
+                if current is not None:
+                    if isinstance(current, (dict, list)):
+                        # Возвращаем валидный JSON с двойными кавычками
+                        metadata_value = json.dumps(current, ensure_ascii=False, indent=2)
+                    else:
+                        metadata_value = str(current)
+            except Exception as e:
+                print(f"⚠️ [LoadImageWithMetadata] Error extracting nested key '{extract_key}': {e}")
+                metadata_value = ""
 
         print(f"✅ [LoadImageWithMetadata] Loaded: {image}")
         print(f"   Size: {img.width}x{img.height} ({img.mode})")
@@ -914,3 +942,268 @@ class LoadImageWithMetadata:
         if not folder_paths.exists_annotated_filepath(image):
             return "Invalid image file: {}".format(image)
         return True
+
+
+class ImageGetSize:
+    """
+    ImageGetSize
+    ------------------
+    Extracts width and height from an input image tensor.
+    Returns either the min or max side as 'resolution' based on the boolean switch.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "use_min_side": ("BOOLEAN", {"default": True}),
+            }
+        }
+
+    RETURN_TYPES = ("INT", "INT", "INT")
+    RETURN_NAMES = ("width", "height", "resolution")
+    FUNCTION = "extract_size"
+    CATEGORY = f"{CATEGORY_PREFIX}/Images"
+
+    def extract_size(self, image: torch.Tensor, use_min_side: bool = False) -> tuple[int, int, int]:
+        # ComfyUI image format: [B, H, W, C]
+        if image.ndim != 4:
+            raise ValueError("Expected 4D tensor [B, H, W, C]")
+
+        _, height, width, _ = image.shape
+
+        if use_min_side:
+            resolution = min(width, height)
+        else:
+            resolution = max(width, height)
+
+        return (width, height, resolution)
+
+
+# class DesiredResolution:
+#     """
+#     Crops and resizes image for BiRefNet/WAN
+#     """
+#
+#     ASPECT_RATIOS = {
+#         "21:9": (21, 9),
+#         "16:9": (16, 9),
+#         "4:3": (4, 3),
+#         "3:2": (3, 2),
+#         "1:1": (1, 1),
+#     }
+#
+#     @classmethod
+#     def INPUT_TYPES(cls):
+#         return {
+#             "required": {
+#                 "image": ("IMAGE",),
+#                 "min_side": ("INT", {"default": 360, "min": 360, "max": 1440, "step": 16}),
+#                 "aspect_ratio": (list(cls.ASPECT_RATIOS.keys()), {"default": "16:9"}),
+#             }
+#         }
+#
+#     RETURN_TYPES = ("IMAGE", "INT", "INT")
+#     RETURN_NAMES = ("image", "width", "height")
+#     FUNCTION = "execute"
+#     DESCRIPTION = "Crops and resizes image for BiRefNet/WAN."
+#     CATEGORY = f"{CATEGORY_PREFIX}/Images"
+#
+#     def execute(self, image: torch.Tensor, min_side: int, aspect_ratio: str):
+#         if image.ndim != 4:
+#             raise ValueError("Expected input tensor of shape [B, H, W, C]")
+#
+#         batch_size, h, w, c = image.shape
+#         w_ratio, h_ratio = self.ASPECT_RATIOS[aspect_ratio]
+#         target_ratio = w_ratio / h_ratio  # e.g. 16/9 ≈ 1.777...
+#
+#         # --- Determine input orientation ---
+#         is_landscape = w >= h
+#
+#         # --- Step 1: Center crop to target aspect ratio ---
+#         # We want output: width / height = target_ratio
+#         # But preserve orientation:
+#         #   - landscape: width > height → keep height as reference
+#         #   - portrait: height > width → keep width as reference
+#
+#         if is_landscape:
+#             # Target: width = height * target_ratio
+#             current_ratio = w / h
+#             if current_ratio > target_ratio:
+#                 # Too wide → crop horizontally
+#                 new_w = int(h * target_ratio)
+#                 new_h = h
+#                 left = (w - new_w) // 2
+#                 right = left + new_w
+#                 top, bottom = 0, h
+#             else:
+#                 # Too tall → crop vertically
+#                 new_h = int(w / target_ratio)
+#                 new_w = w
+#                 top = (h - new_h) // 2
+#                 bottom = top + new_h
+#                 left, right = 0, w
+#         else:
+#             # Portrait: we want height > width, so: height = width * target_ratio
+#             current_ratio = h / w  # > 1 for portrait
+#             if current_ratio > target_ratio:
+#                 # Too tall → crop vertically
+#                 new_h = int(w * target_ratio)
+#                 new_w = w
+#                 top = (h - new_h) // 2
+#                 bottom = top + new_h
+#                 left, right = 0, w
+#             else:
+#                 # Too wide → crop horizontally
+#                 new_w = int(h / target_ratio)
+#                 new_h = h
+#                 left = (w - new_w) // 2
+#                 right = left + new_w
+#                 top, bottom = 0, h
+#
+#         # Apply crop
+#         cropped = image[:, top:bottom, left:right, :]
+#
+#         # --- Step 2: Compute final size (rounded UP to multiple of 16) ---
+#         if is_landscape:
+#             target_h = self._ceil_to_multiple(min_side, 16)
+#             target_w = self._ceil_to_multiple(round(min_side * target_ratio), 16)
+#         else:
+#             target_w = self._ceil_to_multiple(min_side, 16)
+#             target_h = self._ceil_to_multiple(round(min_side * target_ratio), 16)
+#
+#         target_w = max(target_w, 64)
+#         target_h = max(target_h, 64)
+#
+#         # --- Step 3: Resize ---
+#         img_nchw = cropped.permute(0, 3, 1, 2)  # [B, C, H, W]
+#         resized_nchw = F.interpolate(
+#             img_nchw,
+#             size=(target_h, target_w),
+#             mode="bilinear",
+#             align_corners=False
+#         )
+#         resized_image = resized_nchw.permute(0, 2, 3, 1)  # [B, H, W, C]
+#
+#         print(f"[DesiredResolution] {w}x{h} → cropped {new_w}x{new_h} → resized {target_w}x{target_h}")
+#
+#         return (resized_image, target_w, target_h)
+#
+#     def _ceil_to_multiple(self, x: int, multiple: int) -> int:
+#         """Round up to nearest multiple of `multiple`."""
+#         return multiple * ((x + multiple - 1) // multiple)
+
+
+
+class DesiredResolution:
+    """
+    Crops and resizes image for BiRefNet/WAN.
+    Image input is optional — if not connected, only returns computed width/height.
+    """
+
+    ASPECT_RATIOS = {
+        "21:9": (21, 9),
+        "16:9": (16, 9),
+        "4:3": (4, 3),
+        "3:2": (3, 2),
+        "1:1": (1, 1),
+    }
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "optional": {  # ← changed from "required"
+                "image": ("IMAGE",),
+            },
+            "required": {
+                "min_side": ("INT", {"default": 360, "min": 360, "max": 1440, "step": 16}),
+                "aspect_ratio": (list(cls.ASPECT_RATIOS.keys()), {"default": "16:9"}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "INT", "INT")
+    RETURN_NAMES = ("image", "width", "height")
+    FUNCTION = "execute"
+    DESCRIPTION = "Crops and resizes image for BiRefNet/WAN. Image input is optional."
+    CATEGORY = f"{CATEGORY_PREFIX}/Images"
+
+    def execute(self, min_side: int, aspect_ratio: str, image: torch.Tensor = None):
+        w_ratio, h_ratio = self.ASPECT_RATIOS[aspect_ratio]
+        target_ratio = w_ratio / h_ratio
+
+        # If no image provided — just compute target resolution
+        if image is None:
+            # Assume landscape by default when no image
+            target_h = self._ceil_to_multiple(min_side, 16)
+            target_w = self._ceil_to_multiple(round(min_side * target_ratio), 16)
+            target_w = max(target_w, 64)
+            target_h = max(target_h, 64)
+            return (None, target_w, target_h)
+
+        # Validate image shape
+        if image.ndim != 4:
+            raise ValueError("Expected input tensor of shape [B, H, W, C]")
+
+        batch_size, h, w, c = image.shape
+        is_landscape = w >= h
+
+        # --- Step 1: Center crop to target aspect ratio ---
+        if is_landscape:
+            current_ratio = w / h
+            if current_ratio > target_ratio:
+                new_w = int(h * target_ratio)
+                new_h = h
+                left = (w - new_w) // 2
+                right = left + new_w
+                top, bottom = 0, h
+            else:
+                new_h = int(w / target_ratio)
+                new_w = w
+                top = (h - new_h) // 2
+                bottom = top + new_h
+                left, right = 0, w
+        else:
+            current_ratio = h / w
+            if current_ratio > target_ratio:
+                new_h = int(w * target_ratio)
+                new_w = w
+                top = (h - new_h) // 2
+                bottom = top + new_h
+                left, right = 0, w
+            else:
+                new_w = int(h / target_ratio)
+                new_h = h
+                left = (w - new_w) // 2
+                right = left + new_w
+                top, bottom = 0, h
+
+        cropped = image[:, top:bottom, left:right, :]
+
+        # --- Step 2: Compute final size ---
+        if is_landscape:
+            target_h = self._ceil_to_multiple(min_side, 16)
+            target_w = self._ceil_to_multiple(round(min_side * target_ratio), 16)
+        else:
+            target_w = self._ceil_to_multiple(min_side, 16)
+            target_h = self._ceil_to_multiple(round(min_side * target_ratio), 16)
+
+        target_w = max(target_w, 64)
+        target_h = max(target_h, 64)
+
+        # --- Step 3: Resize ---
+        img_nchw = cropped.permute(0, 3, 1, 2)
+        resized_nchw = F.interpolate(
+            img_nchw,
+            size=(target_h, target_w),
+            mode="bilinear",
+            align_corners=False
+        )
+        resized_image = resized_nchw.permute(0, 2, 3, 1)
+
+        print(f"[DesiredResolution] {w}x{h} → cropped {new_w}x{new_h} → resized {target_w}x{target_h}")
+
+        return (resized_image, target_w, target_h)
+
+    def _ceil_to_multiple(self, x: int, multiple: int) -> int:
+        return multiple * ((x + multiple - 1) // multiple)

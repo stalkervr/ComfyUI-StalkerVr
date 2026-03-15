@@ -6,29 +6,32 @@ from .nodes.image_process import (
     ImageGridCropper,
     ImageBatchCrop,
     ImageRatioResizer,
+    ImageGetSize,
+    DesiredResolution,
     SaveImageWithMetadata,
     LoadImageWithMetadata,
     LoadImagesWithMetadata
 )
 
 from .nodes.sting_process import (
-    StringConcatenation,
     StringWrapper,
     StringListToString,
     StringCollector,
-    StringBuilder
+    StringBuilder,
+    NormalizeString
 )
 
 from .nodes.prompt_handler import (
     PromptPartJoin,
-    WanVideoMultiPrompt
+    WanVideoMultiPrompt,
+    ShotCameraAngle,
+    NudePresetSelector
 )
 
 from .nodes.json_process import (
     JsonRootListExtractor,
     JsonFieldRemover,
     JsonFieldReplaceAdvanced,
-    JsonToString,
     JsonArraySplitter,
     JsonPromptToTextPromptConverter,
     JsonPathLoader,
@@ -37,9 +40,7 @@ from .nodes.json_process import (
     JsonFormat,
     JsonMinify,
     JsonPairInput,
-    JsonFieldValueExtractor,
-    FixJson,
-    JsonToPromptNode
+    JsonFieldValueExtractor
 )
 
 from .nodes.batch_process import (
@@ -49,18 +50,13 @@ from .nodes.batch_process import (
 )
 
 from .nodes.utility import (
-    LogValue,
-    ConsoleLog,
-    DebugConditioningStructure,
+    Logger,
+    SwitchAny,
+    CalculateFrameCount
 )
 
 from .nodes.json_builder import (
     JsonBuilder
-)
-
-from .nodes.pipe import (
-    PipeIn,
-    PipeOut
 )
 
 from .nodes.file_process import (
@@ -78,20 +74,31 @@ from .nodes.wan_video_enhance import (
     WanVideoSVIProEmbeds_EnhancedMotion
 )
 
+from .nodes.production import (
+    SaveVideoWithMetadata,
+    GenerateCreationTime,
+    TextWatermark,
+    ImageWatermark
+)
+
 
 NODE_CLASS_MAPPINGS = {
     "StringWrapper": StringWrapper,
     "StringListToString": StringListToString,
     "StringCollector": StringCollector,
-    "StringConcatenation": StringConcatenation,
     "StringBuilder": StringBuilder,
+    "NormalizeString": NormalizeString,
 
     "PromptPartJoin": PromptPartJoin,
     "WanVideoMultiPrompt": WanVideoMultiPrompt,
+    "ShotCameraAngle": ShotCameraAngle,
+    "NudePresetSelector": NudePresetSelector,
 
     "ImageGridCropper": ImageGridCropper,
     "ImageBatchCrop": ImageBatchCrop,
     "ImageRatioResizer": ImageRatioResizer,
+    "ImageGetSize": ImageGetSize,
+    "DesiredResolution": DesiredResolution,
     "SaveImageWithMetadata": SaveImageWithMetadata,
     "LoadImageWithMetadata": LoadImageWithMetadata,
     "LoadImagesWithMetadata": LoadImagesWithMetadata,
@@ -99,7 +106,6 @@ NODE_CLASS_MAPPINGS = {
     "JsonRootListExtractor": JsonRootListExtractor,
     "JsonFieldRemover": JsonFieldRemover,
     "JsonFieldReplaceAdvanced": JsonFieldReplaceAdvanced,
-    "JsonToString": JsonToString,
     "JsonArraySplitter": JsonArraySplitter,
     "JsonPromptToTextPromptConverter": JsonPromptToTextPromptConverter,
     "JsonPathLoader": JsonPathLoader,
@@ -110,16 +116,14 @@ NODE_CLASS_MAPPINGS = {
     "JsonMinify": JsonMinify,
     "JsonPairInput": JsonPairInput,
     "JsonFieldValueExtractor": JsonFieldValueExtractor,
-    "FixJson": FixJson,
-    "JsonToPromptNode": JsonToPromptNode,
 
     "LoopAny": LoopAny,
     "AnyCollector": AnyCollector,
     "ListItemExtractor": ListItemExtractor,
 
-    "LogValue": LogValue,
-    "ConsoleLog": ConsoleLog,
-    "DebugConditioningStructure": DebugConditioningStructure,
+    "Logger": Logger,
+    "SwitchAny": SwitchAny,
+    "CalculateFrameCount": CalculateFrameCount,
 
     "SaveTextFile": SaveTextFile,
     "FormatDatePath": FormatDatePath,
@@ -127,28 +131,35 @@ NODE_CLASS_MAPPINGS = {
     "YAMLLoadPrompt": YAMLLoadPrompt,
     "CreateProjectStructure": CreateProjectStructure,
 
-    "PipeIn": PipeIn,
-    "PipeOut": PipeOut,
-
     "WanVideoEnhanceMotionAdvancedKJ": WanVideoEnhanceMotionAdvancedKJ,
     "WanVideoEnhanceMotionAdvanced": WanVideoEnhanceMotionAdvanced,
     "WanVideoEnhanceSVI": WanVideoEnhanceSVI,
     "WanVideoSVIProEmbeds_EnhancedMotion": WanVideoSVIProEmbeds_EnhancedMotion,
+
+    "SaveVideoWithMetadata": SaveVideoWithMetadata,
+    "GenerateCreationTime": GenerateCreationTime,
+    "TextWatermark": TextWatermark,
+    "ImageWatermark": ImageWatermark,
 }
 
+
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "StringConcatenation": "🪛 String → Concatenation",
     "StringWrapper": "🪛 String → Wrapper",
     "StringListToString": "🪛 String → List To String",
     "StringCollector": "🪛 String → Collector",
     "StringBuilder": "🪛 String → Builder",
+    "NormalizeString": "🪛 String → Normalize String",
 
     "PromptPartJoin": "Prompt Part Join",
     "WanVideoMultiPrompt": "WanVideo Multi Prompt",
+    "ShotCameraAngle": "Shot Camera Angle",
+    "NudePresetSelector": "Nude Preset Selector",
 
     "ImageGridCropper": "🪛 Image → Grid Cropper",
     "ImageBatchCrop": "🪛 Image → Batch Crop",
     "ImageRatioResizer": "🪛 Image → Ratio Resizer",
+    "ImageGetSize": "🪛 Image → Get Size",
+    "DesiredResolution": "🪛 Image → Desired Resolution",
     "SaveImageWithMetadata": "🪛 Image → Save With Metadata",
     "LoadImageWithMetadata": "🪛 Image → Load With Metadata",
     "LoadImagesWithMetadata": "🪛 Images → Load With Metadata",
@@ -156,7 +167,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "JsonRootListExtractor": "🪛 JSON → Root List Extractor",
     "JsonFieldRemover": "🪛 JSON → Field Remover",
     "JsonFieldReplaceAdvanced": "🪛 JSON → Field Add & Replace",
-    "JsonToString": "🪛 JSON → To String",
     "JsonArraySplitter": "🪛 JSON → Split Array to List",
     "JsonPromptToTextPromptConverter": "🪛 JSON → To Text Prompt",
     "JsonPathLoader": "🪛 JSON → Path Loader",
@@ -167,16 +177,14 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "JsonMinify": "🪛 JSON → Minify",
     "JsonFieldValueExtractor": "🪛 JSON → Field Value Extractor",
     "JsonPairInput": "🪛 JSON → Pair Input",
-    "FixJson": "🪛 JSON → Fix",
-    "JsonToPromptNode": "🪛 JSON → To Flat Prompt",
 
     "LoopAny": "🪛 Loop Any",
     "ListItemExtractor": "🪛 List Item Extractor",
     "AnyCollector": "🪛 Any Collector",
 
-    "LogValue": "🪛 Log Value",
-    "ConsoleLog": "🪛 Console Log",
-    "DebugConditioningStructure": "🪛 Debug Conditioning Structure",
+    "Logger": "🪛 Logger",
+    "SwitchAny": "🪛 Switch",
+    "CalculateFrameCount": "🪛 Calculate Frame Count",
 
     "SaveTextFile": "🪛 Save Text File",
     "FormatDatePath": "🪛 Format Date Path",
@@ -184,13 +192,15 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "YAMLLoadPrompt": "🪛 YAML → Load Prompt",
     "CreateProjectStructure": "🪛 Create Project Structure",
 
-    "PipeIn": "🪛 Pipe In",
-    "PipeOut": "🪛 Pipe Out",
-
     "WanVideoEnhanceMotionAdvancedKJ": "🪛 Enhance Motion KJ",
     "WanVideoEnhanceMotionAdvanced": "🪛 Enhance Motion",
     "WanVideoEnhanceSVI": "🪛 SVI Enhance",
     "WanVideoSVIProEmbeds_EnhancedMotion": "🪛 SVI ProEmbeds EnhancedMotion",
+
+    "SaveVideoWithMetadata": "🪛 Save Video With Metadata",
+    "GenerateCreationTime": "🪛 Generate Creation Time",
+    "TextWatermark": "🪛 Text Watermark",
+    "ImageWatermark": "🪛 Image Watermark",
 }
 
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS', 'WEB_DIRECTORY']

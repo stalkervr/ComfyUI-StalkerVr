@@ -1,39 +1,47 @@
+import re
+
+
 from .constants import (
     CATEGORY_PREFIX
 )
 
 
-class StringConcatenation:
-    """Node to concatenate two inputs of type ANY with an optional separator and newline."""
+class Everything(str):
+    def __ne__(self, value: object) -> bool:
+        return False
 
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {},
-            "optional": {
-                "any_1": ("STRING", {"default": ""}),
-                "any_2": ("STRING", {"default": ""}),
-                "separator": ("STRING", {"default": ", "}),
-                "newline": ("BOOLEAN", {"default": False}),
-            }
-        }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("STRING",)
-    FUNCTION = "concatenate_inputs"
-    CATEGORY = f"{CATEGORY_PREFIX}/Text"
-
-    def concatenate_inputs(self, any_1="", any_2="", separator="", newline=False):
-        # Преобразуем входы в строки для конкатенации
-        str_input1 = str(any_1)
-        str_input2 = str(any_2)
-
-        if newline:
-            concatenated_output = f"{str_input1}{separator}\n{str_input2}"
-        else:
-            concatenated_output = f"{str_input1}{separator}{str_input2}"
-
-        return (concatenated_output,)
+# class StringConcatenation:
+#     """Node to concatenate two inputs of type ANY with an optional separator and newline."""
+#
+#     @classmethod
+#     def INPUT_TYPES(cls):
+#         return {
+#             "required": {},
+#             "optional": {
+#                 "any_1": ("STRING", {"default": ""}),
+#                 "any_2": ("STRING", {"default": ""}),
+#                 "separator": ("STRING", {"default": ", "}),
+#                 "newline": ("BOOLEAN", {"default": False}),
+#             }
+#         }
+#
+#     RETURN_TYPES = ("STRING",)
+#     RETURN_NAMES = ("STRING",)
+#     FUNCTION = "concatenate_inputs"
+#     CATEGORY = f"{CATEGORY_PREFIX}/Text"
+#
+#     def concatenate_inputs(self, any_1="", any_2="", separator="", newline=False):
+#         # Преобразуем входы в строки для конкатенации
+#         str_input1 = str(any_1)
+#         str_input2 = str(any_2)
+#
+#         if newline:
+#             concatenated_output = f"{str_input1}{separator}\n{str_input2}"
+#         else:
+#             concatenated_output = f"{str_input1}{separator}{str_input2}"
+#
+#         return (concatenated_output,)
 
 
 class StringWrapper:
@@ -175,3 +183,38 @@ class StringBuilder:
             concatenated_output = separator.join(strings_to_concat)
 
         return (concatenated_output,)
+
+
+class NormalizeString:
+    """
+    NormalizeString
+    ----------------
+    Removes line breaks and collapses multiple whitespace characters into a single space.
+    Useful for cleaning prompts, JSON strings, or any text input.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "optional": {
+                "string": (Everything("*"), {"default": ""}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("normalized_string",)
+    FUNCTION = "normalize"
+    CATEGORY = f"{CATEGORY_PREFIX}/Text"
+
+    def normalize(self, string="") -> tuple[str]:
+        if string is None:
+            string = ""
+        elif not isinstance(string, str):
+            string = str(string)
+
+        # Replace all whitespace sequences (including \n, \r, \t) with a single space
+        normalized = re.sub(r'\s+', ' ', string)
+        # Strip leading/trailing spaces
+        normalized = normalized.strip()
+
+        return (normalized,)
