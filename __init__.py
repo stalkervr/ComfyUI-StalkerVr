@@ -10,21 +10,21 @@ from .nodes.logger import LogEntry, log
 
 # Import Nodes
 # We will add imports here as we refactor and add nodes
-# from .nodes.civitai_downloader import CivitAIWanLoraDownloader
-# from .nodes.lora_loader import LoraLoaderExtended, LoraLoaderExtendedBatch
+from .nodes.civitai_downloader import CivitAIWanLoraDownloader
+from .nodes.lora_loader import LoraLoaderExtended, LoraLoaderExtendedBatch
 # # from .nodes.image_size import ImageGetSize
 #
 # # Registration Dictionary
-# NODE_CLASS_MAPPINGS = {
-#     "CivitAIWanLoraDownloader": CivitAIWanLoraDownloader,
-#     "LoraLoaderExtended": LoraLoaderExtended,
-#     "LoraLoaderExtendedBatch": LoraLoaderExtendedBatch,
-# }
-#
-# NODE_DISPLAY_NAME_MAPPINGS = {
-#     "CivitAIWanLoraDownloader": "CivitAI → Wan LoRA Downloader",
-#     "LoraLoaderExtended": "LoRA Loader Extended",
-#     "LoraLoaderExtendedBatch": "LoRA Loader Extended (Batch)",
-# }
-#
-# __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+NODE_CLASS_MAPPINGS = {
+    "CivitAIWanLoraDownloader": CivitAIWanLoraDownloader,
+    "LoraLoaderExtended": LoraLoaderExtended,
+    "LoraLoaderExtendedBatch": LoraLoaderExtendedBatch,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "CivitAIWanLoraDownloader": "CivitAI → Wan LoRA Downloader",
+    "LoraLoaderExtended": "LoRA Loader Extended",
+    "LoraLoaderExtendedBatch": "LoRA Loader Extended (Batch)",
+}
+
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
