@@ -1,0 +1,15 @@
+# ComfyUI-StalkerVr Configuration
+# Public settings. Safe to commit.
+
+logging:
+  global_enabled: true
+  # Control logging for specific node classes here
+  node_settings:
+    CivitAIWanLoraDownloader: true
+    LoraLoaderExtended: true
+    LoraLoaderExtendedBatch: true
+    # Add new nodes here as you develop them
+
+# UI settings (future use)
+ui:
+  theme: "auto"
