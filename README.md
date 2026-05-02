@@ -1,6 +1,6 @@
 # ComfyUI-StalkerVr
 
-Advanced workflow tools for **Wan 2.2** video generation. This package provides a structured suite of nodes for downloading, managing, and applying paired LoRAs (High/Low noise), featuring centralized configuration, secure API key management, and batch processing capabilities.
+A versatile collection of custom nodes for ComfyUI, designed to streamline complex workflows and enhance productivity. This package provides a structured toolkit for asset management, model handling, and batch processing, featuring centralized configuration, secure API key management, and intelligent logging. Built with modularity in mind, it serves as a scalable foundation for efficient and maintainable ComfyUI workflows.
 
 ## 📦 Installation
 
@@ -149,3 +149,241 @@ Process up to 5 LoRAs in a single node. Ideal for complex workflows requiring mu
 |--------|------|-------------|
 | `MODEL` / `CLIP` | MODEL / CLIP | Model and CLIP with all active LoRAs applied. |
 | `NAME_STRING` | STRING | Combined list of all applied LoRA names from all slots. |
+
+---
+
+### 🔹 Logger
+Enhanced console logger with passthrough functionality, structured log output, and customizable console colors. Accepts wildcard inputs and formats pipeline data for debugging and tracking.
+
+#### ✨ Key Features
+- **Wildcard Input:** Accepts any ComfyUI data type via `*` connector.
+- **Passthrough Mode:** Outputs the exact same value unchanged for seamless pipeline integration.
+- **Custom Console Colors:** Choose from 8 terminal colors for better visual tracking in workflows.
+- **Structured Logging:** Generates clean, readable log strings with type and value inspection.
+- **Configurable Output:** Toggle console printing on/off without breaking the workflow.
+- **Force Execution:** Runs on every queue cycle (`IS_CHANGED = NaN`) for real-time debugging.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `any_value` | * | Wildcard input: accepts any data type (tensors, dicts, strings, etc.). |
+| `checkpoint_name` | STRING | Custom label for the log entry (Default: `default`). |
+| `text_color` | COMBO | Console text color: `default`, `red`, `green`, `blue`, `yellow`, `cyan`, `magenta`, `white`. |
+| `console` | BOOLEAN | Enable/disable console output (Default: `True`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `passthrough` | * | Exact copy of the input value, unchanged. |
+| `log_string` | STRING | Formatted log string containing checkpoint name, type, and value (clean, no ANSI codes). |
+
+---
+
+### 🔹 Switch Any
+Conditional routing node with lazy evaluation. Passes through the selected input (`on_true` or `on_false`) based on a boolean condition, evaluating only the active branch to save computation.
+
+#### ✨ Key Features
+- **Lazy Evaluation:** Skips processing for the unselected branch, improving workflow performance.
+- **Wildcard Support:** Accepts any data type via `*` connectors for maximum flexibility.
+- **Zero Overhead Passthrough:** Directly routes selected data without modification or copying.
+- **Dynamic Branching:** Ideal for conditional workflows, model swapping, or feature toggles.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `condition` | BOOLEAN | Toggle to select output branch (Default: `False` → `on_false`). |
+| `on_true` | * | Wildcard input routed when condition is `True`. |
+| `on_false` | * | Wildcard input routed when condition is `False`. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `passthrough` | * | Direct output from the selected branch (`on_true` or `on_false`). |
+
+---
+
+### 🔹 Calculate Frame Count
+Computes total frame count for video generation using the formula: `frames = (duration_seconds × fps) + 1`. The +1 offset ensures the starting frame (frame 0) is included in the count.
+
+#### ✨ Key Features
+- **Precise Calculation:** Uses integer math for exact frame counts without floating-point errors.
+- **Bounded Inputs:** Enforces sensible ranges for duration (1–300s) and fps (12–60) to prevent invalid workflows.
+- **Tooltip Guidance:** Inline help text explains each parameter directly in the ComfyUI interface.
+- **Zero Dependencies:** Pure logic node with no external libraries or side effects.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `duration_seconds` | INT | Video duration in seconds (range: 1–300, step: 1). |
+| `fps` | INT | Frames per second (range: 12–60, step: 4). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `frame_count` | INT | Total number of frames including the starting frame (frame 0). |
+
+---
+
+### 🔹 Current Date Time
+Returns the current date and time as a formatted string (YYYYMMDD base). Supports cascading precision toggles where enabling seconds automatically enables minutes and hours. Forces execution on every queue cycle for real-time timestamps.
+
+#### ✨ Key Features
+- **Real-Time Execution:** Uses `IS_CHANGED = NaN` to generate fresh timestamps on every workflow run.
+- **Cascading Precision:** Automatically enables lower units (e.g., seconds → minutes + hours) to maintain valid format structure.
+- **Base Format:** Always starts with `YYYYMMDD` for sortable, unambiguous date strings.
+- **Zero-Input Design:** Operates independently without requiring upstream connections.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `include_hours` | BOOLEAN | Append hours (HH) to the timestamp (Default: `False`). |
+| `include_minutes` | BOOLEAN | Append minutes (MM). Auto-enables hours if toggled (Default: `False`). |
+| `include_seconds` | BOOLEAN | Append seconds (SS). Auto-enables hours & minutes if toggled (Default: `False`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `date_time` | STRING | Formatted timestamp string (e.g., `20260401`, `20260401090534`). |
+
+---
+
+### 🔹 Wan Video LoRA Pair Creator
+Creates a paired Wan 2.2 LoRA folder from existing LoRAs in `models/loras/`. Copies selected high/low noise models, renames them to the expected format, and generates a matching `lora.json` for seamless integration with Wan loaders.
+
+#### ✨ Key Features
+- **Source Selection:** Dropdown lists populated from `models/loras/` for easy source LoRA selection.
+- **Safe Copying:** Source files are copied, not moved—originals remain untouched.
+- **Auto-Metadata:** Generates `lora.json` with cleaned, deduplicated trigger words and optional model page URL.
+- **Overwrite Protection:** Skips creation if target files exist unless explicitly overridden.
+- **Structured Output:** Saves to `models/loras/wan_loras/[subfolder]/[name]/` with consistent naming.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `model_page` | STRING | Optional URL to the model's page (saved to `lora.json` for reference). |
+| `lora_name` | STRING | Name for the new folder and renamed files. |
+| `high_noise_model` | COMBO | Source high noise LoRA from `models/loras/`. |
+| `low_noise_model` | COMBO | Source low noise LoRA from `models/loras/`. |
+| `trigger_words` | STRING | Comma-separated trigger words (auto-cleaned & deduplicated). |
+| `subfolder` | STRING | Optional subfolder inside `wan_loras/` (e.g., `anime/style`). |
+| `overwrite` | BOOLEAN | Replace existing files if target already exists (Default: `False`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `status` | STRING | Execution result: success, skipped, or error message. |
+| `folder_path` | STRING | Absolute path to the created LoRA pair directory. |
+
+#### 📁 Resulting File Structure
+```text
+models/loras/wan_loras/
+└── [subfolder]/
+    └── [lora_name]/
+        ├── [lora_name]_High.safetensors
+        ├── [lora_name]_Low.safetensors
+        └── lora.json
+
+```
+
+---
+
+### 🔹 Wan Video Enhance Motion Advanced KJ
+Applies motion amplification with color drift protection to `image_embeds` from WanVideoImageToVideoEncode. Uses the PainterI2V algorithm with advanced color correction to enhance dynamic movement while preserving visual fidelity.
+
+#### ✨ Key Features
+- **Motion Amplification:** Increases temporal dynamics by scaling frame-to-frame differences (factor 1.0–1.5).
+- **Color Drift Protection:** Automatically detects and corrects channel-wise color shifts to maintain consistency.
+- **Brightness Stabilization:** Prevents unwanted darkening/brightening during motion enhancement.
+- **Safe Latent Clamping:** Keeps values within WanVideo's expected range ([-6, 6]) to avoid artifacts.
+- **Zero Overhead Bypass:** Returns input unchanged when `motion_amplitude = 1.0`.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `image_embeds` | WANVIDIMAGE_EMBEDS | Input embeddings from WanVideoImageToVideoEncode. |
+| `motion_amplitude` | FLOAT | Amplification factor: 1.0 = disabled, >1.0 = more dynamic (range: 1.0–1.5). |
+| `color_protect` | BOOLEAN | Enable automatic color drift correction (Default: `True`). |
+| `correct_strength` | FLOAT | Strength of color correction (0.0 = none, 0.3 = strong; Default: `0.05`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `enhanced_image_embeds` | WANVIDIMAGE_EMBEDS | Modified embeddings with amplified motion and protected colors. |
+
+#### ⚠️ Requirements
+- Requires at least **2 frames** in the input sequence.
+- Designed for use **after** `WanVideoImageToVideoEncode` and **before** the Wan sampler.
+- GPU memory usage increases slightly due to tensor cloning and device transfers.
+
+---
+
+### 🔹 Wan Video Enhance Motion Advanced
+Advanced motion enhancement with color drift protection for `CONDITIONING`/`LATENT` inputs. Outputs both enhanced and original conditioning sets for dual-sampler workflows (high/low noise branching). Based on PainterI2VAdvanced logic with adaptive color correction.
+
+#### ✨ Key Features
+- **Dual Output Design:** Returns enhanced + original conditioning for parallel high/low noise sampling.
+- **Motion Amplification:** Scales temporal differences in latent space (factor 1.0–2.0) for more dynamic motion.
+- **Color Drift Protection:** Auto-detects and corrects channel-wise color shifts to preserve visual fidelity.
+- **Brightness Stabilization:** Prevents unwanted exposure changes during enhancement.
+- **Format Agnostic:** Handles both tuple and list conditioning formats used by ComfyUI.
+- **Zero Overhead Bypass:** Returns inputs unchanged when `motion_amplitude = 1.0`.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `positive` | CONDITIONING | Positive conditioning from text/image encoder. |
+| `negative` | CONDITIONING | Negative conditioning for guidance. |
+| `latent` | LATENT | Input latent with 5D shape `[B, C, T, H, W]`. |
+| `vae` | VAE | VAE model (required for dimension inference). |
+| `motion_amplitude` | FLOAT | Amplification factor: 1.0 = disabled, >1.0 = more dynamic (range: 1.0–2.0). |
+| `color_protect` | BOOLEAN | Enable automatic color drift correction (Default: `True`). |
+| `correct_strength` | FLOAT | Strength of color correction (0.0 = none, 0.3 = strong; Default: `0.05`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `high_positive` | CONDITIONING | Enhanced positive conditioning for high-noise sampler. |
+| `high_negative` | CONDITIONING | Enhanced negative conditioning for high-noise sampler. |
+| `low_positive` | CONDITIONING | Original positive conditioning for low-noise sampler. |
+| `low_negative` | CONDITIONING | Original negative conditioning for low-noise sampler. |
+| `latent` | LATENT | Unmodified input latent (passthrough). |
+
+#### ⚠️ Requirements
+- Requires `concat_latent_image` parameter in positive conditioning (set by `WanVideoImageToVideoEncode`).
+- Input latent must be 5D: `[Batch, Channels, Time, Height, Width]`.
+- Designed for use **before** dual KSampler nodes in Wan 2.2 workflows.
+
+---
+
+### 🔹 Wan Video LoRA Pair Select
+Loads Wan 2.2 LoRA pair metadata from structured folders and returns chained `WANVIDLORA` lists. Supports `[none]` passthrough, automatic trigger word merging, and real-time UI metadata display for workflow transparency.
+
+#### ✨ Key Features
+- **Auto-Discovery:** Scans `models/loras/wan_loras/` for folders containing valid `lora.json`.
+- **Chaining Support:** Seamlessly chains multiple pairs via `prev_high_lora` / `prev_low_lora` inputs.
+- **Smart Passthrough:** Selecting `[none]` bypasses processing and forwards previous inputs unchanged.
+- **Trigger Merging:** Automatically deduplicates and combines trigger words across chained nodes.
+- **UI Metadata Panel:** Displays live folder status, availability, and merged triggers in the ComfyUI interface.
+- **Granular Control:** Independent enable/strength toggles for high and low noise components.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `lora_folder` | COMBO | Dropdown of valid Wan LoRA folders + `[none]` option. |
+| `high_strength` | FLOAT | Strength for high noise LoRA (range: -1000.0 to 1000.0). |
+| `enable_high` | BOOLEAN | Toggle high noise LoRA application (Default: `True`). |
+| `low_strength` | FLOAT | Strength for low noise LoRA (range: -1000.0 to 1000.0). |
+| `enable_low` | BOOLEAN | Toggle low noise LoRA application (Default: `True`). |
+| `prev_high_lora` | WANVIDLORA | Chained high noise LoRA list from upstream nodes. |
+| `prev_low_lora` | WANVIDLORA | Chained low noise LoRA list from upstream nodes. |
+| `prev_trigger_words` | STRING | Chained trigger words string from upstream nodes. |
+| `blocks` | SELECTEDBLOCKS | Optional block/layer selection for fine-tuned application. |
+| `low_mem_load` | BOOLEAN | Enable low VRAM loading mode (Default: `False`). |
+| `merge_loras` | BOOLEAN | Merge LoRAs directly into model weights (Default: `False`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `high_lora` | WANVIDLORA | List of high noise LoRA configs ready for loader. |
+| `low_lora` | WANVIDLORA | List of low noise LoRA configs ready for loader. |
+| `trigger_words` | STRING | Deduplicated, merged trigger string for downstream use. |

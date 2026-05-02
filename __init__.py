@@ -1,30 +1,70 @@
 """
 ComfyUI-StalkerVr
-A collection of advanced tools for Wan 2.2 video generation workflow.
-Includes CivitAI downloader, batch LoRA loaders, and image utilities.
+A versatile collection of custom nodes for ComfyUI, designed to streamline complex workflows and enhance productivity.
+This package provides a structured toolkit for asset management, model handling, and batch processing,
+featuring centralized configuration, secure API key management, and intelligent logging.
+Built with modularity in mind, it serves as a scalable foundation for efficient and maintainable ComfyUI workflows.
 """
 
-# Import Core Utilities
-from .nodes.config_manager import ConfigManager
-from .nodes.logger import LogEntry, log
+from .nodes.wan_video_lora_civitai_downloader import (
+    WanVideoLoraCivitAIDownloader
+)
+from .nodes.lora_loader import (
+    LoraLoaderExtended,
+    LoraLoaderExtendedBatch
+)
+from .nodes.utils import (
+    Logger,
+    SwitchAny,
+    CalculateFrameCount,
+    CurrentDateTime
+)
+from .nodes.wan_video_lora_pair_creator import (
+    WanVideoLoraPairCreator
+)
+from .nodes.wan_video_enhance_motion_advanced_kj import (
+    WanVideoEnhanceMotionAdvancedKJ
+)
+from .nodes.wan_video_enhance_motion_advanced import (
+    WanVideoEnhanceMotionAdvanced
+)
+from .nodes.wan_video_lora_pair_select import (
+    WanVideoLoraPairSelect
+)
 
-# Import Nodes
-# We will add imports here as we refactor and add nodes
-from .nodes.civitai_downloader import CivitAIWanLoraDownloader
-from .nodes.lora_loader import LoraLoaderExtended, LoraLoaderExtendedBatch
-# # from .nodes.image_size import ImageGetSize
-#
-# # Registration Dictionary
+
 NODE_CLASS_MAPPINGS = {
-    "CivitAIWanLoraDownloader": CivitAIWanLoraDownloader,
+    "WanVideoLoraCivitAIDownloader": WanVideoLoraCivitAIDownloader,
+    "WanVideoLoraPairCreator": WanVideoLoraPairCreator,
+    "WanVideoEnhanceMotionAdvancedKJ": WanVideoEnhanceMotionAdvancedKJ,
+    "WanVideoEnhanceMotionAdvanced": WanVideoEnhanceMotionAdvanced,
+    "WanVideoLoraPairSelect": WanVideoLoraPairSelect,
+
     "LoraLoaderExtended": LoraLoaderExtended,
     "LoraLoaderExtendedBatch": LoraLoaderExtendedBatch,
+
+    "Logger": Logger,
+    "SwitchAny": SwitchAny,
+    "CalculateFrameCount": CalculateFrameCount,
+    "CurrentDateTime": CurrentDateTime,
 }
 
+
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "CivitAIWanLoraDownloader": "CivitAI → Wan LoRA Downloader",
+    "WanVideoLoraCivitAIDownloader": "WanVideo LoraCivitAIDownloader",
+    "WanVideoLoraPairCreator": "WanVideo LoraPairCreator",
+    "WanVideoEnhanceMotionAdvancedKJ": "WanVideo EnhanceMotionAdvancedKJ",
+    "WanVideoEnhanceMotionAdvanced": "WanVideo EnhanceMotionAdvanced",
+    "WanVideoLoraPairSelect": "WanVideo LoraPairSelect",
+
     "LoraLoaderExtended": "LoRA Loader Extended",
     "LoraLoaderExtendedBatch": "LoRA Loader Extended (Batch)",
+
+    "Logger": "Logger",
+    "SwitchAny": "SwitchAny",
+    "CalculateFrameCount": "CalculateFrameCount",
+    "CurrentDateTime": "CurrentDateTime",
 }
+
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]

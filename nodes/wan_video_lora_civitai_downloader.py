@@ -6,7 +6,7 @@ from .config_manager import ConfigManager
 from .logger import LogEntry, log
 
 
-class CivitAIWanLoraDownloader:
+class WanVideoLoraCivitAIDownloader:
     """
     Downloads Wan 2.2 LoRA pair (high/low noise) from CivitAI.
     Supports civitai.com and civitai.red with unified config management.
@@ -41,7 +41,7 @@ class CivitAIWanLoraDownloader:
     RETURN_TYPES = ("STRING", "STRING", "STRING")
     RETURN_NAMES = ("status", "folder_path", "trigger_words")
     FUNCTION = "download_lora_pair"
-    CATEGORY = f"{CATEGORY_PREFIX}/Utils"
+    CATEGORY = f"{CATEGORY_PREFIX}/WanVideo"
     OUTPUT_NODE = True
 
     @staticmethod
@@ -168,7 +168,7 @@ class CivitAIWanLoraDownloader:
 
         if downloaded_files:
             log(LogEntry(
-                node_class="CivitAIWanLoraDownloader",
+                node_class="WanVideoLoraCivitAIDownloader",
                 title=f"Downloaded: {safe_lora_name}",
                 details={
                     "Files": f"{len(downloaded_files)} downloaded, {len(skipped_files)} skipped",
