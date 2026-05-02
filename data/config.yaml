@@ -1,15 +1,30 @@
 # ComfyUI-StalkerVr Configuration
-# Public settings. Safe to commit.
 
+# Enable global loging (for develop)
 logging:
   global_enabled: true
+
   # Control logging for specific node classes here
   node_settings:
-    CivitAIWanLoraDownloader: true
+    WanVideoLoraCivitAIDownloader: true
+    WanVideoLoraPairCreator: true
+    WanVideoLoraPairSelect: true
+    WanVideoEnhanceMotionAdvancedKJ: true
+    WanVideoEnhanceMotionAdvanced: true
+
     LoraLoaderExtended: true
     LoraLoaderExtendedBatch: true
-    # Add new nodes here as you develop them
 
-# UI settings (future use)
-ui:
-  theme: "auto"
+    JsonFieldValueExtractor: true
+    JsonFieldRemover: true
+    JsonFieldReplaceExtend: true
+    JsonPromptToTextPromptConverter: true
+    JsonSerializeObject: true
+    JsonDeserializeObject: true
+    JsonFormat: true
+    JsonMinify: true
+    JsonPathLoader: true
+    JsonBuilder: true
+    JsonPairInput: false
+
+    CurrentDateTime: true

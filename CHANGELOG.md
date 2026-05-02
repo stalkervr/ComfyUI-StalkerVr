@@ -1,17 +1,7 @@
-feat: add Wan 2.2 ecosystem nodes and core workflow utilities
-
-- Introduce LoRA management suite (Downloader, Creator, Pair Select)
-- Add motion enhancement nodes (Embeds & Conditioning variants)
-- Implement Logger, Switch Any, Frame Counter, and Date/Time tools
-- Centralize configuration, constants, and custom types
-- Overhaul README.md with structured node documentation
-- Enforce English logging, error handling, and type safety
-
-## 📝 CHANGELOG.md
-
 ## [Unreleased]
-###  Added - Wan 2.2 Ecosystem
-- **CivitAI → Wan LoRA Downloader**: Fetches paired high/low noise LoRAs with auto-metadata generation and skip-if-exists caching.
+
+### ✨ Added - Wan 2.2 Ecosystem
+- **Wan Video Lora CivitAI Downloader**: Fetches paired high/low noise LoRAs with auto-metadata generation and skip-if-exists caching.
 - **Wan Video LoRA Pair Creator**: Converts existing LoRAs into structured Wan pairs with `lora.json` and overwrite protection.
 - **Wan Video LoRA Pair Select**: Dropdown selector with chaining support, trigger word merging, and live UI metadata display.
 - **Wan Video Enhance Motion Advanced KJ**: Motion amplification for `WANVIDIMAGE_EMBEDS` with PainterI2V algorithm and color drift protection.
@@ -25,6 +15,19 @@ feat: add Wan 2.2 ecosystem nodes and core workflow utilities
 - **Config Manager & Constants**: Secure split-config system (`secrets.yaml` + `config.yaml`), centralized path registration, and shared category prefixes.
 - **Custom Types Module**: Extracted `Everything` wildcard type for reusable cross-node compatibility.
 
-### 📝 Documentation
+### 🧩 Added - JSON Utilities
+- **Json Builder**: Dynamic key-value construction with nested dot-notation support and JS-driven dynamic inputs.
+- **Json Pair Input**: Smart input node with automatic type detection (JSON/Bool/Num/String) and wildcard passthrough.
+- **Json Path Loader**: Batch directory scanner with sorting, limiting, and forced fresh-scan execution (`IS_CHANGED=random`).
+- **Json Serialize / Deserialize Object**: Bidirectional batch conversion between Python objects and JSON strings with ComfyUI list output support.
+- **Json Format / Minify**: Pretty-printing and compacting tools with configurable ASCII escaping, key sorting, and error fallback modes.
+- **Json Field Value Extractor**: Precise value retrieval using dot notation with strict type preservation.
+- **Json Field Remover**: Safe deletion of multiple fields by pipe-separated paths with graceful missing-key handling.
+- **Json Field Replace Extend**: Dynamic field updates with smart casting, dot/array navigation, and optional value concatenation.
+- **Json Prompt To Text Prompt**: Recursive flattener that converts JSON structures into clean, punctuated text prompts with newline toggling.
+
+###  Documentation & Refactoring
 - Complete `README.md` overhaul with installation, API key setup, and per-node specifications in standardized Markdown format.
-- All nodes now use centralized logging, English error messages, and consistent type hints.
+- **Centralized Logging**: Replaced all `print()` statements with `LogEntry` across the entire node suite.
+- **Type Safety & Fallbacks**: Added explicit type hints, safe parsing wrappers, and graceful degradation for all converters.
+- All nodes now follow consistent architecture patterns, dynamic input handling, and ComfyUI best practices.

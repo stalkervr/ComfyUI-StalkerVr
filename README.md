@@ -29,6 +29,8 @@ A versatile collection of custom nodes for ComfyUI, designed to streamline compl
 
 ---
 
+---
+
 ## 🔐 API Key Setup
 
 1. Open the `data/` folder in this repository.
@@ -52,7 +54,9 @@ A versatile collection of custom nodes for ComfyUI, designed to streamline compl
 
 ---
 
-## 📥 CivitAI → Wan LoRA Downloader
+---
+
+## 📥 Wan Video Lora CivitAI Downloader
 
 Automatically downloads paired Wan 2.2 LoRAs (High & Low noise) directly from CivitAI and prepares them for immediate use. Creates the correct folder structure and generates a valid `lora.json` metadata file for seamless integration with the loader node.
 
@@ -92,158 +96,6 @@ models/loras/wan_loras/
         ├── [lora_name]_Low.safetensors
         └── lora.json
 ```
-
----
-
-## 🔹 LoRA Loader Extended
-
-Advanced single LoRA loader with enable/disable toggle, unified strength control, and automatic name chaining for workflow tracking.
-
-### ✨ Key Features
-- **Enable/Disable Toggle:** Dynamic workflow control without removing nodes.
-- **Unified Strength:** Single slider applies to both MODEL and CLIP.
-- **Name Chaining:** Automatic tracking of applied LoRAs via `NAME_STRING`.
-- **Silent Bypass:** No console output when disabled or strength = 0.
-- **Intelligent Caching:** Prevents redundant file loading.
-
-### 📥 Input Parameters
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `model` | MODEL | Input model from previous nodes. |
-| `clip` | CLIP | Input CLIP from previous nodes. |
-| `lora_name` | COMBO | Dropdown list of available LoRAs. |
-| `enable_lora` | BOOLEAN | Enable/disable LoRA application (Default: `True`). |
-| `strength` | FLOAT | Unified strength for both MODEL and CLIP (-10.0 to 10.0). |
-| `name_string` | STRING | Chain input: receives previous LoRA names. |
-
-### 📤 Outputs
-| Output | Type | Description |
-|--------|------|-------------|
-| `MODEL` | MODEL | Model with LoRA applied (or bypassed). |
-| `CLIP` | CLIP | CLIP with LoRA applied (or bypassed). |
-| `NAME_STRING` | STRING | Combined list of all applied LoRA names (comma-separated). |
-
----
-
-## 🔹 LoRA Loader Extended (Batch)
-
-Process up to 5 LoRAs in a single node. Ideal for complex workflows requiring multiple style or character LoRAs simultaneously.
-
-### ✨ Key Features
-- **5 Independent Slots:** Individual enable toggles per LoRA.
-- **Per-Slot Strength:** Separate control for each LoRA (unified for MODEL/CLIP).
-- **Consolidated Output:** Single `NAME_STRING` combining all active slots.
-- **Efficient Bypass:** Automatically skips disabled or zero-strength slots.
-
-### 📥 Input Parameters
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `model` / `clip` | MODEL / CLIP | Input model and CLIP. |
-| `lora_name_1` to `5` | COMBO | 5 independent LoRA selectors. |
-| `enable_1` to `5` | BOOLEAN | Individual slot toggles (Default: `True`). |
-| `strength_1` to `5` | FLOAT | Per-slot strength control (-10.0 to 10.0). |
-| `name_string` | STRING | Chain input from previous loaders. |
-
-### 📤 Outputs
-| Output | Type | Description |
-|--------|------|-------------|
-| `MODEL` / `CLIP` | MODEL / CLIP | Model and CLIP with all active LoRAs applied. |
-| `NAME_STRING` | STRING | Combined list of all applied LoRA names from all slots. |
-
----
-
-### 🔹 Logger
-Enhanced console logger with passthrough functionality, structured log output, and customizable console colors. Accepts wildcard inputs and formats pipeline data for debugging and tracking.
-
-#### ✨ Key Features
-- **Wildcard Input:** Accepts any ComfyUI data type via `*` connector.
-- **Passthrough Mode:** Outputs the exact same value unchanged for seamless pipeline integration.
-- **Custom Console Colors:** Choose from 8 terminal colors for better visual tracking in workflows.
-- **Structured Logging:** Generates clean, readable log strings with type and value inspection.
-- **Configurable Output:** Toggle console printing on/off without breaking the workflow.
-- **Force Execution:** Runs on every queue cycle (`IS_CHANGED = NaN`) for real-time debugging.
-
-#### 📥 Input Parameters
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `any_value` | * | Wildcard input: accepts any data type (tensors, dicts, strings, etc.). |
-| `checkpoint_name` | STRING | Custom label for the log entry (Default: `default`). |
-| `text_color` | COMBO | Console text color: `default`, `red`, `green`, `blue`, `yellow`, `cyan`, `magenta`, `white`. |
-| `console` | BOOLEAN | Enable/disable console output (Default: `True`). |
-
-#### 📤 Outputs
-| Output | Type | Description |
-|--------|------|-------------|
-| `passthrough` | * | Exact copy of the input value, unchanged. |
-| `log_string` | STRING | Formatted log string containing checkpoint name, type, and value (clean, no ANSI codes). |
-
----
-
-### 🔹 Switch Any
-Conditional routing node with lazy evaluation. Passes through the selected input (`on_true` or `on_false`) based on a boolean condition, evaluating only the active branch to save computation.
-
-#### ✨ Key Features
-- **Lazy Evaluation:** Skips processing for the unselected branch, improving workflow performance.
-- **Wildcard Support:** Accepts any data type via `*` connectors for maximum flexibility.
-- **Zero Overhead Passthrough:** Directly routes selected data without modification or copying.
-- **Dynamic Branching:** Ideal for conditional workflows, model swapping, or feature toggles.
-
-#### 📥 Input Parameters
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `condition` | BOOLEAN | Toggle to select output branch (Default: `False` → `on_false`). |
-| `on_true` | * | Wildcard input routed when condition is `True`. |
-| `on_false` | * | Wildcard input routed when condition is `False`. |
-
-#### 📤 Outputs
-| Output | Type | Description |
-|--------|------|-------------|
-| `passthrough` | * | Direct output from the selected branch (`on_true` or `on_false`). |
-
----
-
-### 🔹 Calculate Frame Count
-Computes total frame count for video generation using the formula: `frames = (duration_seconds × fps) + 1`. The +1 offset ensures the starting frame (frame 0) is included in the count.
-
-#### ✨ Key Features
-- **Precise Calculation:** Uses integer math for exact frame counts without floating-point errors.
-- **Bounded Inputs:** Enforces sensible ranges for duration (1–300s) and fps (12–60) to prevent invalid workflows.
-- **Tooltip Guidance:** Inline help text explains each parameter directly in the ComfyUI interface.
-- **Zero Dependencies:** Pure logic node with no external libraries or side effects.
-
-#### 📥 Input Parameters
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `duration_seconds` | INT | Video duration in seconds (range: 1–300, step: 1). |
-| `fps` | INT | Frames per second (range: 12–60, step: 4). |
-
-#### 📤 Outputs
-| Output | Type | Description |
-|--------|------|-------------|
-| `frame_count` | INT | Total number of frames including the starting frame (frame 0). |
-
----
-
-### 🔹 Current Date Time
-Returns the current date and time as a formatted string (YYYYMMDD base). Supports cascading precision toggles where enabling seconds automatically enables minutes and hours. Forces execution on every queue cycle for real-time timestamps.
-
-#### ✨ Key Features
-- **Real-Time Execution:** Uses `IS_CHANGED = NaN` to generate fresh timestamps on every workflow run.
-- **Cascading Precision:** Automatically enables lower units (e.g., seconds → minutes + hours) to maintain valid format structure.
-- **Base Format:** Always starts with `YYYYMMDD` for sortable, unambiguous date strings.
-- **Zero-Input Design:** Operates independently without requiring upstream connections.
-
-#### 📥 Input Parameters
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `include_hours` | BOOLEAN | Append hours (HH) to the timestamp (Default: `False`). |
-| `include_minutes` | BOOLEAN | Append minutes (MM). Auto-enables hours if toggled (Default: `False`). |
-| `include_seconds` | BOOLEAN | Append seconds (SS). Auto-enables hours & minutes if toggled (Default: `False`). |
-
-#### 📤 Outputs
-| Output | Type | Description |
-|--------|------|-------------|
-| `date_time` | STRING | Formatted timestamp string (e.g., `20260401`, `20260401090534`). |
 
 ---
 
@@ -387,3 +239,419 @@ Loads Wan 2.2 LoRA pair metadata from structured folders and returns chained `WA
 | `high_lora` | WANVIDLORA | List of high noise LoRA configs ready for loader. |
 | `low_lora` | WANVIDLORA | List of low noise LoRA configs ready for loader. |
 | `trigger_words` | STRING | Deduplicated, merged trigger string for downstream use. |
+
+---
+
+---
+
+## 🔹 LoRA Loader Extended
+
+Advanced single LoRA loader with enable/disable toggle, unified strength control, and automatic name chaining for workflow tracking.
+
+### ✨ Key Features
+- **Enable/Disable Toggle:** Dynamic workflow control without removing nodes.
+- **Unified Strength:** Single slider applies to both MODEL and CLIP.
+- **Name Chaining:** Automatic tracking of applied LoRAs via `NAME_STRING`.
+- **Silent Bypass:** No console output when disabled or strength = 0.
+- **Intelligent Caching:** Prevents redundant file loading.
+
+### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `model` | MODEL | Input model from previous nodes. |
+| `clip` | CLIP | Input CLIP from previous nodes. |
+| `lora_name` | COMBO | Dropdown list of available LoRAs. |
+| `enable_lora` | BOOLEAN | Enable/disable LoRA application (Default: `True`). |
+| `strength` | FLOAT | Unified strength for both MODEL and CLIP (-10.0 to 10.0). |
+| `name_string` | STRING | Chain input: receives previous LoRA names. |
+
+### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `MODEL` | MODEL | Model with LoRA applied (or bypassed). |
+| `CLIP` | CLIP | CLIP with LoRA applied (or bypassed). |
+| `NAME_STRING` | STRING | Combined list of all applied LoRA names (comma-separated). |
+
+---
+
+## 🔹 LoRA Loader Extended (Batch)
+
+Process up to 5 LoRAs in a single node. Ideal for complex workflows requiring multiple style or character LoRAs simultaneously.
+
+### ✨ Key Features
+- **5 Independent Slots:** Individual enable toggles per LoRA.
+- **Per-Slot Strength:** Separate control for each LoRA (unified for MODEL/CLIP).
+- **Consolidated Output:** Single `NAME_STRING` combining all active slots.
+- **Efficient Bypass:** Automatically skips disabled or zero-strength slots.
+
+### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `model` / `clip` | MODEL / CLIP | Input model and CLIP. |
+| `lora_name_1` to `5` | COMBO | 5 independent LoRA selectors. |
+| `enable_1` to `5` | BOOLEAN | Individual slot toggles (Default: `True`). |
+| `strength_1` to `5` | FLOAT | Per-slot strength control (-10.0 to 10.0). |
+| `name_string` | STRING | Chain input from previous loaders. |
+
+### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `MODEL` / `CLIP` | MODEL / CLIP | Model and CLIP with all active LoRAs applied. |
+| `NAME_STRING` | STRING | Combined list of all applied LoRA names from all slots. |
+
+---
+
+---
+
+### 🔹 Current Date Time
+Returns the current date and time as a formatted string (YYYYMMDD base). Supports cascading precision toggles where enabling seconds automatically enables minutes and hours. Forces execution on every queue cycle for real-time timestamps.
+
+#### ✨ Key Features
+- **Real-Time Execution:** Uses `IS_CHANGED = NaN` to generate fresh timestamps on every workflow run.
+- **Cascading Precision:** Automatically enables lower units (e.g., seconds → minutes + hours) to maintain valid format structure.
+- **Base Format:** Always starts with `YYYYMMDD` for sortable, unambiguous date strings.
+- **Zero-Input Design:** Operates independently without requiring upstream connections.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `include_hours` | BOOLEAN | Append hours (HH) to the timestamp (Default: `False`). |
+| `include_minutes` | BOOLEAN | Append minutes (MM). Auto-enables hours if toggled (Default: `False`). |
+| `include_seconds` | BOOLEAN | Append seconds (SS). Auto-enables hours & minutes if toggled (Default: `False`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `date_time` | STRING | Formatted timestamp string (e.g., `20260401`, `20260401090534`). |
+
+---
+
+### 🔹 Calculate Frame Count
+Computes total frame count for video generation using the formula: `frames = (duration_seconds × fps) + 1`. The +1 offset ensures the starting frame (frame 0) is included in the count.
+
+#### ✨ Key Features
+- **Precise Calculation:** Uses integer math for exact frame counts without floating-point errors.
+- **Bounded Inputs:** Enforces sensible ranges for duration (1–300s) and fps (12–60) to prevent invalid workflows.
+- **Tooltip Guidance:** Inline help text explains each parameter directly in the ComfyUI interface.
+- **Zero Dependencies:** Pure logic node with no external libraries or side effects.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `duration_seconds` | INT | Video duration in seconds (range: 1–300, step: 1). |
+| `fps` | INT | Frames per second (range: 12–60, step: 4). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `frame_count` | INT | Total number of frames including the starting frame (frame 0). |
+
+---
+
+### 🔹 Switch Any
+Conditional routing node with lazy evaluation. Passes through the selected input (`on_true` or `on_false`) based on a boolean condition, evaluating only the active branch to save computation.
+
+#### ✨ Key Features
+- **Lazy Evaluation:** Skips processing for the unselected branch, improving workflow performance.
+- **Wildcard Support:** Accepts any data type via `*` connectors for maximum flexibility.
+- **Zero Overhead Passthrough:** Directly routes selected data without modification or copying.
+- **Dynamic Branching:** Ideal for conditional workflows, model swapping, or feature toggles.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `condition` | BOOLEAN | Toggle to select output branch (Default: `False` → `on_false`). |
+| `on_true` | * | Wildcard input routed when condition is `True`. |
+| `on_false` | * | Wildcard input routed when condition is `False`. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `passthrough` | * | Direct output from the selected branch (`on_true` or `on_false`). |
+
+---
+
+### 🔹 Logger
+Enhanced console logger with passthrough functionality, structured log output, and customizable console colors. Accepts wildcard inputs and formats pipeline data for debugging and tracking.
+
+#### ✨ Key Features
+- **Wildcard Input:** Accepts any ComfyUI data type via `*` connector.
+- **Passthrough Mode:** Outputs the exact same value unchanged for seamless pipeline integration.
+- **Custom Console Colors:** Choose from 8 terminal colors for better visual tracking in workflows.
+- **Structured Logging:** Generates clean, readable log strings with type and value inspection.
+- **Configurable Output:** Toggle console printing on/off without breaking the workflow.
+- **Force Execution:** Runs on every queue cycle (`IS_CHANGED = NaN`) for real-time debugging.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `any_value` | * | Wildcard input: accepts any data type (tensors, dicts, strings, etc.). |
+| `checkpoint_name` | STRING | Custom label for the log entry (Default: `default`). |
+| `text_color` | COMBO | Console text color: `default`, `red`, `green`, `blue`, `yellow`, `cyan`, `magenta`, `white`. |
+| `console` | BOOLEAN | Enable/disable console output (Default: `True`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `passthrough` | * | Exact copy of the input value, unchanged. |
+| `log_string` | STRING | Formatted log string containing checkpoint name, type, and value (clean, no ANSI codes). |
+
+---
+
+---
+
+### 🔹 Json Field Value Extractor
+Extracts a specific field value from a JSON string using dot notation, preserving the original data type. Includes a passthrough output for seamless pipeline chaining.
+
+#### ✨ Key Features
+- **Dot Notation Support:** Navigate nested JSON objects using `parent.child.key` syntax.
+- **Type Preservation:** Returns values as their native Python types (string, number, list, dict, etc.) for direct use in downstream nodes.
+- **Exact Passthrough:** Outputs the original JSON string unchanged to prevent data loss in complex workflows.
+- **Graceful Fallback:** Returns `None` on missing keys or invalid JSON without breaking the workflow.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `json_string` | STRING | Valid JSON string to parse. |
+| `key` | STRING | Target field path using dot notation (e.g., `info.city`). |
+
+####  Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `value` | * | Extracted value in its original type, or `None` if not found. |
+| `json_passthrough` | STRING | Exact copy of the input JSON string for chaining. |
+
+---
+
+### 🔹 Json Field Remover
+Removes specified fields from a JSON string using dot-notation paths. Supports multiple paths separated by `|` and returns a cleanly formatted JSON string.
+
+#### ✨ Key Features
+- **Multi-Path Support:** Remove multiple fields in a single pass using `|` delimiter.
+- **Dot Notation Navigation:** Safely traverse nested JSON objects to target specific keys.
+- **Safe Deletion:** Gracefully handles missing paths without throwing errors or breaking the workflow.
+- **Auto-Formatting:** Outputs a properly indented, human-readable JSON string.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description                                                       |
+|-----------|------|-------------------------------------------------------------------|
+| `json_string` | STRING | Valid JSON string to process.                                     |
+| `key` | STRING | Dot-notation paths to remove, separated by `|` (e.g., `path.to.field1 | path.to.field2`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `json_string` | STRING | Modified JSON string with specified fields removed and formatted with indentation. |
+
+---
+
+### 🔹 Json Field Replace Extend
+Adds or replaces a field in a JSON string using dot-notation paths. Supports array indexing, automatic type casting, and optional value extension for string concatenation workflows.
+
+####  Key Features
+- **Dot & Array Notation:** Navigate and modify nested objects or arrays using paths like `parent.child` or `arr.0.id`.
+- **Smart Type Casting:** Automatically converts input strings to `int`, `float`, `bool`, `null`, or valid JSON objects before assignment.
+- **Value Extension:** When enabled, prepends new values to existing strings (`new_value, old_value`) instead of overwriting.
+- **Safe Fallback Parsing:** Gracefully handles Python `repr()`-style dictionary strings if standard JSON parsing fails.
+- **Silent Bypass:** Skips processing and returns the original JSON if the value field is empty.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `json_string` | STRING | Valid JSON string or dictionary-like structure to modify. |
+| `key` | STRING | Dot-notation target path (e.g., `settings.theme` or `users.0.name`). |
+| `value` | STRING | Value to assign. Auto-casts to native types or JSON structures. |
+| `extend_value` | BOOLEAN | If `True`, prepends value to existing string instead of replacing (Default: `False`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `json_string` | STRING | Modified JSON string with updated/added fields, formatted with indentation. |
+
+---
+
+### 🔹 Json Prompt To Text Prompt Converter
+Converts a JSON object into a plain text prompt by extracting only values, ignoring keys. Automatically formats strings and lists with proper punctuation, filters empty data, and supports single-line or newline output.
+
+####  Key Features
+- **Value-Only Extraction:** Strips JSON keys, preserving only semantic values for clean prompt generation.
+- **Auto-Punctuation:** Appends periods to strings and comma-separates list items, ending with a period.
+- **Null/Empty Filtering:** Silently skips `null`, empty strings, and empty lists to prevent prompt pollution.
+- **Recursive Flattening:** Handles deeply nested dictionaries and arrays without losing data structure context.
+- **Flexible Formatting:** Toggle between space-separated or newline-separated output for multi-line prompts.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `json_string` | STRING | Valid JSON object to parse. |
+| `new_line` | BOOLEAN | Join extracted values with newlines instead of spaces (Default: `False`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `prompt` | STRING | Extracted values formatted as a continuous text prompt. |
+
+---
+
+### 🔹 Json Serialize Object
+Serializes single Python objects or lists of objects into JSON strings. Designed for batch processing in ComfyUI workflows, converting arbitrary data structures (dicts, lists, primitives) into a standardized string format.
+
+#### ✨ Key Features
+- **Wildcard Input:** Accepts any Python object type via `*` connector.
+- **Batch Processing:** Automatically wraps single objects into a list; handles pre-existing lists natively.
+- **ComfyUI List Output:** Uses `OUTPUT_IS_LIST` to return a batch of JSON strings compatible with downstream nodes.
+- **Safe Fallback:** Replaces unserializable objects with an empty string instead of breaking the workflow.
+- **Unicode Support:** Preserves non-ASCII characters in output strings.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `input_data` | * | Single object or list of objects to serialize. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `output` | * | List of JSON strings, one per input item. |
+
+---
+
+### 🔹 Json Deserialize Object
+Deserializes single JSON strings or lists of strings back into native Python objects. Designed for batch processing in ComfyUI workflows, converting standardized JSON strings back into dictionaries, lists, or primitives.
+
+#### ✨ Key Features
+- **Wildcard Input:** Accepts any input type, automatically routing strings or lists of strings.
+- **Batch Processing:** Wraps single strings into a list; processes pre-existing lists natively.
+- **ComfyUI List Output:** Uses `OUTPUT_IS_LIST` to return a batch of Python objects for downstream nodes.
+- **Safe Fallback:** Replaces invalid or non-string inputs with `None` instead of breaking the workflow.
+- **Error Isolation:** Handles malformed JSON per-item, preserving valid objects in the batch.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `input_data` | * | Single JSON string or list of JSON strings to deserialize. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `output` | * | List of deserialized Python objects (dicts, lists, primitives, or `None` on error). |
+
+---
+
+### 🔹 Json Format
+Takes a JSON string (formatted or minified) and outputs a pretty-printed version. Useful for human-readable logging, debugging, or file saving.
+
+#### ✨ Key Features
+- **Auto-Formatting:** Converts minified or irregular JSON into a clean, indented structure.
+- **Configurable Output:** Toggle ASCII escaping and key sorting for consistent serialization.
+- **Graceful Error Handling:** Returns the original string or a clear error message based on workflow needs.
+- **Silent Bypass:** Safely handles empty inputs without throwing exceptions.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `json_string` | STRING | Valid JSON string to format. |
+| `ensure_ascii` | BOOLEAN | Escape non-ASCII characters to `\uXXXX` sequences (Default: `False`). |
+| `sort_keys` | BOOLEAN | Sort dictionary keys alphabetically (Default: `False`). |
+| `on_error_return_original` | BOOLEAN | Return original string on parse failure instead of an error message (Default: `True`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `pretty_json` | STRING | Formatted JSON string with 4-space indentation. |
+
+---
+
+### 🔹 Json Minify
+Takes a pretty-printed JSON string and outputs a minified (compact) version. Removes all unnecessary whitespace, newlines, and indentation for efficient storage or transmission.
+
+#### ✨ Key Features
+- **Compact Serialization:** Strips all formatting to produce the smallest possible valid JSON string.
+- **Configurable Output:** Toggle ASCII escaping and key sorting for consistent, deterministic minification.
+- **Graceful Error Handling:** Returns the original string or a clear error message based on workflow needs.
+- **Silent Bypass:** Safely handles empty inputs without throwing exceptions.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `json_string` | STRING | Valid JSON string to minify. |
+| `ensure_ascii` | BOOLEAN | Escape non-ASCII characters to `\uXXXX` sequences (Default: `False`). |
+| `sort_keys` | BOOLEAN | Sort dictionary keys alphabetically (Default: `False`). |
+| `on_error_return_original` | BOOLEAN | Return original string on parse failure instead of an error message (Default: `True`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `minified_json` | STRING | Compact JSON string with all whitespace removed. |
+
+---
+
+### 🔹 Json Path Loader
+Loads all JSON files from a specified folder. Forces re-execution to ensure fresh scans, supports sorting, limiting, and automatic output type inference.
+
+#### ✨ Key Features
+- **Fresh Scans:** `IS_CHANGED` uses a random seed to force re-execution, ensuring newly added files are always detected.
+- **Flexible Sorting:** Sort files by name, creation date, modification date, or size (ascending/descending).
+- **Batch Limit:** Control the number of files loaded to prevent memory overload.
+- **Type Inference:** Automatically detects if loaded content is `INT`, `FLOAT`, `STRING`, or mixed, adjusting the output type accordingly.
+- **Formatted Output:** Parses and re-dumps JSON with 4-space indentation for readability.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `folder_path` | STRING | Absolute or relative path to the folder containing JSON files. |
+| `sort_by` | COMBO | Sorting criteria: `name`, `created`, `modified`, `size` (with `_desc` variants). |
+| `limit` | INT | Maximum number of files to load. `0` loads all files (Default: `0`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `output` | * | List of formatted JSON strings. Type adapts based on content (INT/FLOAT/STRING/*). |
+
+---
+
+### 🔹 Json Builder
+Builds a JSON object from dynamic key-value pairs. Supports nested keys via dot notation, automatically skips empty fields, and outputs a cleanly formatted JSON string.
+
+#### ✨ Key Features
+- **Dynamic Pair Input:** Configurable number of key/value slots (1–100) via a single slider.
+- **Nested Key Support:** Use dot notation (e.g., `user.profile.name`) to create nested JSON structures.
+- **Empty Field Filtering:** Automatically ignores empty keys or values to keep output clean.
+- **Formatted Output:** Returns a pretty-printed JSON string ready for downstream nodes or file saving.
+
+#### 📥 Input Parameters
+| Parameter                | Type | Description                                           |
+|--------------------------|------|-------------------------------------------------------|
+| `num_pairs`              | INT | Number of key-value pairs to process (range: 1–100).  |
+| `key_1` to `key_100`     | STRING | Field names. Supports dot notation for nesting.       |
+| `value_1` to `value_100` | STRING | Field values. Empty values are automatically skipped. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `json_output` | STRING | Formatted JSON string containing all valid key-value pairs. |
+
+---
+
+### 🔹 Json Pair Input
+Creates a key-value pair with automatic type detection. Accepts any input type via wildcard, attempts to parse strings as JSON/numbers/booleans, and falls back to plain text if conversion fails.
+
+#### ✨ Key Features
+- **Wildcard Input:** Accepts any ComfyUI data type or raw string.
+- **Smart Type Conversion:** Automatically converts strings to `int`, `float`, `bool`, `None`, or complex JSON structures.
+- **Safe Fallback:** Returns the original string if type detection fails, preventing workflow breaks.
+- **Disconnected Input Handling:** Treats unconnected or empty value slots as `None`.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `key` | STRING | Field name for the JSON pair. |
+| `value` | * | Field value. Supports auto-conversion from string or direct passthrough. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `key` | STRING | Normalized string key. |
+| `value` | * | Converted value in its detected native type, or `None` if empty/unconnected. |
+
+---
+
