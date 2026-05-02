@@ -40,6 +40,11 @@ from .nodes.json_path_loader import JsonPathLoader
 from .nodes.json_builder import JsonBuilder
 from .nodes.json_pair_input import JsonPairInput
 
+from .nodes.string_builder import StringBuilder
+from .nodes.string_wrapper import StringWrapper
+from .nodes.string_normalize import StringNormalize
+
+
 NODE_CLASS_MAPPINGS = {
     "WanVideoLoraCivitAIDownloader": WanVideoLoraCivitAIDownloader,
     "WanVideoLoraPairCreator": WanVideoLoraPairCreator,
@@ -66,6 +71,10 @@ NODE_CLASS_MAPPINGS = {
     "JsonPathLoader": JsonPathLoader,
     "JsonBuilder": JsonBuilder,
     "JsonPairInput": JsonPairInput,
+
+    "StringBuilder": StringBuilder,
+    "StringWrapper": StringWrapper,
+    "StringNormalize": StringNormalize,
 }
 
 
@@ -95,6 +104,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "JsonPathLoader": "JSON PathLoader",
     "JsonBuilder": "JSON Builder",
     "JsonPairInput": "JSON PairInput",
+
+    "StringBuilder": "String Builder",
+    "StringWrapper": "String Wrapper",
+    "StringNormalize": "String Normalize",
 }
 
 

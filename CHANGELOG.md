@@ -26,7 +26,12 @@
 - **Json Field Replace Extend**: Dynamic field updates with smart casting, dot/array navigation, and optional value concatenation.
 - **Json Prompt To Text Prompt**: Recursive flattener that converts JSON structures into clean, punctuated text prompts with newline toggling.
 
-###  Documentation & Refactoring
+### 🔤 Added - String & Text Utilities
+- **String Builder**: Dynamic text concatenation with configurable separators, newline injection, and JS-driven input scaling.
+- **String Wrapper**: Prefix/suffix wrapping with intelligent whitespace handling and empty-segment filtering.
+- **String Normalize**: Universal whitespace normalizer that collapses line breaks and multiple spaces into single delimiters.
+
+### 📝 Documentation & Refactoring
 - Complete `README.md` overhaul with installation, API key setup, and per-node specifications in standardized Markdown format.
 - **Centralized Logging**: Replaced all `print()` statements with `LogEntry` across the entire node suite.
 - **Type Safety & Fallbacks**: Added explicit type hints, safe parsing wrappers, and graceful degradation for all converters.

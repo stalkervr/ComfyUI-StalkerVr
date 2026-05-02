@@ -27,4 +27,8 @@ logging:
     JsonBuilder: true
     JsonPairInput: false
 
+    StringBuilder: true
+    StringWrapper: true
+    StringNormalize: true
+
     CurrentDateTime: true

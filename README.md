@@ -655,3 +655,73 @@ Creates a key-value pair with automatic type detection. Accepts any input type v
 
 ---
 
+---
+
+### 🔹 String Builder
+Concatenates multiple string inputs with a configurable separator. Supports optional newline injection for multi-line prompt construction.
+
+#### ✨ Key Features
+- **Dynamic Input Count:** Adjustable number of string slots (0–100) via `num_inputs` slider.
+- **Flexible Separator:** Custom delimiter between segments (space, comma, custom text).
+- **Newline Mode:** Injects line breaks while preserving separator formatting for structured prompts.
+- **Type Safety:** Automatically converts all inputs to strings before concatenation.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description                                                       |
+|-----------|------|-------------------------------------------------------------------|
+| `num_inputs` | INT | Number of string slots to process (range: 2–100).                 |
+| `separator` | STRING | Delimiter inserted between each string segment (Default: `" "`).  |
+| `newline` | BOOLEAN | Enable newline injection after each separator (Default: `False`). |
+| `string_1` to `string_N` | STRING | Dynamic string inputs added based on `num_inputs`.                |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `STRING` | STRING | Final concatenated result with applied separator and newline logic. |
+
+---
+
+### 🔹 String Wrapper
+Wraps input text with configurable prefix and suffix strings. Automatically trims whitespace and intelligently skips empty segments to produce clean, concatenated output.
+
+#### ✨ Key Features
+- **Smart Concatenation:** Joins non-empty parts with single spaces, avoiding double-spacing.
+- **Whitespace Normalization:** Automatically strips leading/trailing whitespace from all inputs.
+- **Empty Segment Handling:** Silently ignores empty prefix/suffix to prevent awkward spacing.
+- **Simple Interface:** Three straightforward inputs for predictable text composition.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `prefix` | STRING | Optional text to prepend (trimmed, skipped if empty). |
+| `input_text` | STRING | Main text content to wrap (trimmed). |
+| `suffix` | STRING | Optional text to append (trimmed, skipped if empty). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `STRING` | STRING | Combined result: `prefix + input_text + suffix` with intelligent spacing. |
+
+---
+
+### 🔹 String Normalize
+Cleans text input by removing line breaks and collapsing multiple whitespace characters into a single space. Ideal for sanitizing prompts, JSON values, or any user-generated text.
+
+#### ✨ Key Features
+- **Universal Input:** Accepts any data type via wildcard connector, auto-converting to string.
+- **Whitespace Collapsing:** Replaces all whitespace sequences (`\n`, `\r`, `\t`, multiple spaces) with a single space.
+- **Trimming:** Automatically removes leading and trailing whitespace from the result.
+- **Safe Fallback:** Handles `None` or empty inputs gracefully without errors.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `string` | * | Input text or any value to normalize (auto-converted to string). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `normalized_string` | STRING | Cleaned text with single-space separators and no leading/trailing whitespace. |
+
+---
+
