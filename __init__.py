@@ -60,6 +60,9 @@ from .nodes.format_date_path import FormatDatePath
 from .nodes.file_save_path import FileSavePath
 from .nodes.save_text_file import SaveTextFile
 
+from .nodes.yaml_save_prompt import YAMLSavePrompt
+from .nodes.yaml_load_prompt import YAMLLoadPrompt
+
 
 NODE_CLASS_MAPPINGS = {
     "WanVideoLoraCivitAIDownloader": WanVideoLoraCivitAIDownloader,
@@ -105,6 +108,9 @@ NODE_CLASS_MAPPINGS = {
     "FormatDatePath": FormatDatePath,
     "FileSavePath": FileSavePath,
     "SaveTextFile": SaveTextFile,
+
+    "YAMLSavePrompt": YAMLSavePrompt,
+    "YAMLLoadPrompt": YAMLLoadPrompt,
 }
 
 
@@ -152,6 +158,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FormatDatePath": "FormatDatePath",
     "FileSavePath": "FileSavePath",
     "SaveTextFile": "SaveTextFile",
+
+    "YAMLSavePrompt": "YAML SavePrompt",
 }
 
 

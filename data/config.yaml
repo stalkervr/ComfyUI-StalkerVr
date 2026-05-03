@@ -44,3 +44,6 @@ logging:
     FormatDatePath: true
     FileSavePath: true
     SaveTextFile: true
+
+    YAMLLoadPrompt: true
+    YAMLSavePrompt: true

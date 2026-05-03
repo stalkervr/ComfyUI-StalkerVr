@@ -267,7 +267,7 @@ class ImageSaveWithMetadata:
                 "filename_prefix": ("STRING", {"default": "output", "tooltip": "Filename prefix"}),
                 "save_workflow": ("BOOLEAN", {"default": True, "tooltip": "Embed ComfyUI workflow"}),
                 "metadata_json": ("STRING", {"default": "{}", "multiline": False, "dynamicPrompts": False}),
-                "compression_level": ("INT", {"default": 4, "min": 0, "max": 9, "step": 1}),
+                "compression_level": ("INT", {"default": 0, "min": 0, "max": 9, "step": 1}),
             },
             "optional": {"captions": ("STRING", {"forceInput": True})},
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},

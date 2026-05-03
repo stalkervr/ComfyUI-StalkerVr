@@ -46,6 +46,10 @@
 - **FileSavePath**: Hierarchical path builder that auto-assembles `{root}/{project}/{type}/{date}/` structures for organized, date-partitioned output routing.
 - **SaveTextFile**: Smart file saver with dynamic date placeholders, collision-safe sequential numbering, automatic extension management, and empty-input bypass.
 
+### 📜 Added - YAML Prompt Utilities
+- **YAML Save Prompt**: Saves positive/negative prompts to a hierarchical YAML database with person/type/group/sub-group nesting, toggle-controlled writing, whitespace normalization, and corruption-safe fallback.
+- **YAML Load Prompt**: Loads synchronized positive/negative prompt lists from YAML with hierarchical path resolution, optional name filtering, result limiting, and force-refresh execution for real-time database reads.
+
 ### 📝 Documentation & Refactoring
 - Complete `README.md` overhaul with installation, API key setup, and per-node specifications in standardized Markdown format.
 - **Centralized Logging**: Replaced all `print()` statements with `LogEntry` across the entire node suite.

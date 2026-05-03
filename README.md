@@ -1022,3 +1022,66 @@ Saves text content to disk with dynamic date formatting, sequential numbering, a
 
 ---
 
+---
+
+### 🔹 YAML Save Prompt
+Saves positive and negative prompts into a hierarchically organized YAML database. Supports person → type → group → sub-group nesting with automatic whitespace normalization and toggle-controlled saving.
+
+#### ✨ Key Features
+- **Hierarchical Storage:** Organizes prompts by `person_name → prompt_type → group_name → [sub_group]`.
+- **Toggle Protection:** Only writes to disk when `save_enabled` is `True`.
+- **Auto-Cleaning:** Flattens multiline inputs into single-line strings with normalized spacing.
+- **Safe Append Logic:** Loads existing database, appends new entry, and preserves YAML structure.
+- **Corruption Fallback:** Automatically resets to an empty database if the target YAML file is malformed.
+- **Passthrough Outputs:** Returns original prompts unchanged for downstream node chaining.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `positive_prompt` | STRING | Main prompt text to save. |
+| `negative_prompt` | STRING | Negative prompt text to save. |
+| `save_enabled` | BOOLEAN | Master switch to trigger disk write (Default: `False`). |
+| `file_path` | STRING | Target YAML database path (supports relative/absolute). |
+| `person_name` | STRING | Top-level author/project key. |
+| `prompt_type` | COMBO | `text-to-image` or `image-to-video`. |
+| `group_name` | STRING | Category name for grouping related prompts. |
+| `sub_group_name` | STRING | Optional sub-category (leave empty to store at group root). |
+| `prompt_name` | STRING | Descriptive label for the specific prompt entry. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `positive_prompt` | STRING | Passthrough of the original positive prompt. |
+| `negative_prompt` | STRING | Passthrough of the original negative prompt. |
+
+---
+
+### 🔹 YAML Load Prompt
+Loads prompts from a hierarchical YAML database as synchronized lists of positive and negative strings. Designed for seamless iteration with `OUTPUT_IS_LIST` and ComfyUI loop nodes.
+
+#### ✨ Key Features
+- **Synchronized List Output:** Returns matching positive/negative pairs via `OUTPUT_IS_LIST = (True, True)`.
+- **Targeted Filtering:** Optionally filter by `prompt_name` for precise retrieval.
+- **Limit Control:** Cap the number of returned prompts to prevent workflow overload.
+- **Hierarchical Navigation:** Resolves `person → type → group → [sub_group]` paths automatically.
+- **Force Refresh:** `IS_CHANGED = NaN` ensures database is re-read on every execution.
+- **Graceful Fallback:** Returns empty lists if file/path is missing or malformed, never breaking the graph.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `file_path` | STRING | Path to the YAML prompts database. |
+| `person_name` | STRING | Top-level author/project key. |
+| `prompt_type` | COMBO | `text-to-image` or `image-to-video`. |
+| `group_name` | STRING | Category/group name within the hierarchy. |
+| `sub_group_name` | STRING | Optional sub-category (leave empty to load entire group). |
+| `prompt_name` | STRING | Optional exact match filter for a specific prompt. |
+| `limit` | INT | Maximum number of prompt pairs to return (`0` = unlimited). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `POSITIVE` | STRING | List of positive prompt strings. |
+| `NEGATIVE` | STRING | List of negative prompt strings (synchronized with positive). |
+
+---
