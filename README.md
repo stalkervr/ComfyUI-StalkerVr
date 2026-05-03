@@ -7,7 +7,7 @@ A versatile collection of custom nodes for ComfyUI, designed to streamline compl
 ### Method 1: Via ComfyUI-Manager (Recommended)
 1. Open **ComfyUI-Manager** in your ComfyUI interface.
 2. Click **Install via Git URL**.
-3. Paste the repository URL: `https://github.com/YOUR_USERNAME/ComfyUI-StalkerVr.git`
+3. Paste the repository URL: `https://github.com/stalkervr/ComfyUI-StalkerVr.git`
 4. Click **Install** and restart ComfyUI.
 
 ### Method 2: Manual Installation
@@ -18,7 +18,7 @@ A versatile collection of custom nodes for ComfyUI, designed to streamline compl
    ```
 3. Clone the repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/ComfyUI-StalkerVr.git
+   git clone https://github.com/stalkervr/ComfyUI-StalkerVr.git
    ```
 4. Install dependencies:
    ```bash
@@ -56,18 +56,18 @@ A versatile collection of custom nodes for ComfyUI, designed to streamline compl
 
 ---
 
-## 📥 Wan Video Lora CivitAI Downloader
+### 📥 Wan Video Lora CivitAI Downloader
 
 Automatically downloads paired Wan 2.2 LoRAs (High & Low noise) directly from CivitAI and prepares them for immediate use. Creates the correct folder structure and generates a valid `lora.json` metadata file for seamless integration with the loader node.
 
-### ✨ Key Features
+#### ✨ Key Features
 - **Dual Platform Support:** Works with both `civitai.com` and `civitai.red` URLs.
 - **Smart Caching:** The `Skip if Exists` toggle prevents redundant downloads and saves bandwidth.
 - **Centralized Configuration:** Automatically reads the API key from `data/secrets.yaml` (can be overridden via node parameter).
 - **Auto-Metadata Generation:** Creates `lora.json` with cleaned, deduplicated trigger words.
 - **Structured Output:** Saves files to `models/loras/wan_loras/[subfolder]/[name]/`.
 
-### 📥 Input Parameters
+#### 📥 Input Parameters
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `model_page` | STRING | Optional URL to the model's CivitAI page (saved to JSON for reference). |
@@ -80,14 +80,14 @@ Automatically downloads paired Wan 2.2 LoRAs (High & Low noise) directly from Ci
 | `skip_if_exists` | BOOLEAN | Skip download if files already exist (Default: `True`). |
 | `enable_high` / `enable_low` | BOOLEAN | Toggle download for specific noise components. |
 
-### 📤 Outputs
+#### 📤 Outputs
 | Output | Type | Description |
 |--------|------|-------------|
 | `status` | STRING | Execution summary (downloaded/skipped/failed counts). |
 | `folder_path` | STRING | Absolute path to the created LoRA directory. |
 | `trigger_words` | STRING | Cleaned trigger string for chaining into downstream nodes. |
 
-### 📁 Resulting File Structure
+#### 📁 Resulting File Structure
 ```text
 models/loras/wan_loras/
 └── [subfolder]/
@@ -134,7 +134,6 @@ models/loras/wan_loras/
         ├── [lora_name]_High.safetensors
         ├── [lora_name]_Low.safetensors
         └── lora.json
-
 ```
 
 ---
@@ -725,3 +724,226 @@ Cleans text input by removing line breaks and collapsing multiple whitespace cha
 
 ---
 
+---
+
+### 🔹 Image Grid Cropper
+Splits images or image batches into a grid of fixed-size crops. Automatically pads edge crops to maintain uniform dimensions, and optionally saves results directly to disk.
+
+#### ✨ Key Features
+- **Batch & Single Support:** Handles both `[B, H, W, C]` and `[H, W, C]` tensor formats seamlessly.
+- **Automatic Padding:** Edge crops smaller than the target size are zero-padded to ensure uniform output.
+- **Optional Disk Export:** Saves each crop as a PNG file with customizable naming patterns.
+- **Channel Agnostic:** Supports grayscale (1), RGB (3), and RGBA (4) images.
+- **Deterministic Output:** Returns a stacked batch of crops ready for downstream processing.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `image` | IMAGE | Input image tensor or batch of tensors. |
+| `rows` | INT | Number of grid rows (Default: `2`). |
+| `cols` | INT | Number of grid columns (Default: `2`). |
+| `block_width` | INT | Target crop width in pixels (Default: `256`). |
+| `block_height` | INT | Target crop height in pixels (Default: `256`). |
+| `save_path` | STRING | Directory path for saving cropped images. |
+| `filename` | STRING | Base filename for saved crops (e.g., `crop`). |
+| `save_to_folder` | BOOLEAN | Enable/disable disk saving (Default: `False`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `images` | IMAGE | Batch tensor containing all cropped regions `[rows*cols, H, W, C]`. |
+
+---
+
+### 🔹 Image Cropper
+Crops images from a batch using explicit margin offsets (left, right, top, bottom). Supports optional size restoration via bilinear interpolation and direct disk export.
+
+#### ✨ Key Features
+- **Margin-Based Cropping:** Precise control over crop boundaries from all four sides.
+- **Size Restoration:** Optionally resizes cropped regions back to original dimensions using bilinear interpolation.
+- **Batch Processing:** Handles `[B, H, W, C]` tensors natively.
+- **Disk Export:** Saves each cropped frame as a PNG with sequential indexing.
+- **Channel Agnostic:** Supports grayscale (1), RGB (3), and RGBA (4) images.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `images` | IMAGE | Input batch tensor `[B, H, W, C]`. |
+| `left` | INT | Pixels to crop from the left edge (Default: `0`). |
+| `right` | INT | Pixels to crop from the right edge (Default: `0`). |
+| `top` | INT | Pixels to crop from the top edge (Default: `0`). |
+| `bottom` | INT | Pixels to crop from the bottom edge (Default: `0`). |
+| `restore_size` | BOOLEAN | Resize cropped output back to original `H x W` (Default: `False`). |
+| `save_path` | STRING | Directory path for saving cropped images. |
+| `filename` | STRING | Base filename for saved crops (e.g., `crop`). |
+| `save_to_folder` | BOOLEAN | Enable/disable disk saving (Default: `False`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `cropped_images` | IMAGE | Cropped (and optionally resized) batch tensor. |
+
+---
+
+### 🔹 Image Ratio Resizer
+Resizes images to a specific aspect ratio while maintaining original proportions. Uses a "cover" strategy with center cropping to achieve the target ratio without distortion or padding.
+
+#### ✨ Key Features
+- **Smart Orientation Detection:** Automatically swaps landscape ratios to portrait equivalents when processing vertical images.
+- **Cover-Mode Resizing:** Scales image to fully cover target dimensions, then center-crops for clean composition.
+- **Batch Support:** Handles both single `[H, W, C]` and batch `[B, H, W, C]` tensors.
+- **Preset & Custom Ratios:** Choose from common aspect ratios or define custom `x:y` values.
+- **Dimension Output:** Returns final width/height integers for downstream node coordination.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `image` | IMAGE | Input image tensor or batch. |
+| `aspect_ratio` | COMBO | Target ratio preset or `custom` (Default: `16:9 (Landscape)`). |
+| `custom_x` | INT | Custom ratio width component (used only if `aspect_ratio == "custom"`). |
+| `custom_y` | INT | Custom ratio height component (used only if `aspect_ratio == "custom"`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `resized_image` | IMAGE | Image cropped/resized to exact target aspect ratio. |
+| `width` | INT | Final output width in pixels. |
+| `height` | INT | Final output height in pixels. |
+
+---
+
+### 🔹 Image Get Size
+Extracts width, height, and resolution from an input image tensor. Useful for dynamic workflow branching based on image dimensions.
+
+#### ✨ Key Features
+- **Batch-Aware:** Correctly reads dimensions from ComfyUI's `[B, H, W, C]` tensor format.
+- **Flexible Resolution:** Toggle between minimum or maximum side length for adaptive workflows.
+- **Triple Output:** Returns width, height, and selected resolution in a single call.
+- **Zero Overhead:** Pure metadata extraction with no image copying or processing.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `image` | IMAGE | Input image tensor (single or batch). |
+| `use_min_side` | BOOLEAN | If `True`, returns `min(width, height)` as resolution; else `max()` (Default: `True`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `width` | INT | Image width in pixels. |
+| `height` | INT | Image height in pixels. |
+| `resolution` | INT | Selected side length (`min` or `max`) for conditional logic. |
+
+---
+
+### 🔹 Image Desired Resolution
+Crops and resizes images to match target aspect ratios for BiRefNet/WAN pipelines. Supports optional image input for dimension-only calculation mode.
+
+#### ✨ Key Features
+- **Optional Image Input:** Returns computed dimensions even without an image connected, enabling dynamic resolution planning.
+- **Aspect Ratio Presets:** Supports common ratios (21:9, 16:9, 4:3, 3:2, 1:1) with automatic orientation handling.
+- **Center Crop Strategy:** Crops to target ratio before resizing to preserve composition and avoid distortion.
+- **16-Pixel Alignment:** All output dimensions are rounded up to multiples of 16 for model compatibility.
+- **Batch Processing:** Handles `[B, H, W, C]` tensors natively.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `image` | IMAGE | Optional input image tensor. If omitted, only dimensions are computed. |
+| `min_side` | INT | Minimum side length in pixels (range: 360–1440, step: 16). |
+| `aspect_ratio` | COMBO | Target aspect ratio preset (Default: `16:9`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `image` | IMAGE | Resized image tensor, or `None` if no input was provided. |
+| `width` | INT | Final output width (aligned to 16px). |
+| `height` | INT | Final output height (aligned to 16px). |
+
+---
+
+### 🔹 Images Load With Metadata
+Batch loads all supported images from a directory, extracting embedded metadata and alpha masks. Returns true lists for seamless pipeline iteration.
+
+#### ✨ Key Features
+- **Universal Format Support:** PNG, JPG, JPEG, WEBP, BMP, TIFF.
+- **Metadata Extraction:** Reads PNG text chunks, EXIF data, and `comfy_metadata` JSON blobs.
+- **Smart Type Conversion:** Automatically restores native Python types from string values.
+- **Alpha Handling:** Extracts transparency as inverted ComfyUI-compatible masks.
+- **Flexible Sorting:** By name, modification date, or filesystem order.
+- **Key Filtering:** Extract specific metadata fields across the entire batch.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `directory_path` | STRING | Path to image directory. |
+| `sort_by` | COMBO | `name`, `date`, or `none`. |
+| `extract_key` | STRING | Optional dot-notation key to extract separately. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `image` | IMAGE | List of image tensors `[B, H, W, C]`. |
+| `mask` | MASK | List of alpha masks or empty tensors. |
+| `metadata_json` | STRING | Full metadata JSON per image. |
+| `metadata_value` | STRING | Extracted value for `extract_key` (or empty). |
+
+---
+
+### 🔹 Image Load With Metadata
+Loads a single uploaded image with global metadata caching. Designed to survive mask editor resets and maintain prompt/metadata context across sessions.
+
+#### ✨ Key Features
+- **Global JS Cache:** Automatically updates metadata on file selection via ComfyUI extension.
+- **Mask Editor Safe:** Retains cached metadata even when ComfyUI generates temp clipspace files.
+- **Nested Key Support:** Extract deep values using dot notation (e.g., `settings.model.seed`).
+- **Fallback Parsing:** Reads metadata directly from file if cache is empty.
+- **Standard Output:** Compatible with all native ComfyUI image/mask pipelines.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `image` | COMBO | Dropdown of uploaded images in `input/` directory. |
+| `extract_key` | STRING | Optional dot-notation key to extract. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `image` | IMAGE | Loaded image tensor `[1, H, W, C]`. |
+| `mask` | MASK | Alpha channel mask or empty tensor. |
+| `metadata_json` | STRING | Complete metadata JSON. |
+| `metadata_value` | STRING | Extracted nested value or empty string. |
+
+---
+
+### 🔹 Image Save With Metadata
+Saves images as PNG with embedded custom metadata, workflow data, and optional captions. No preview overhead; optimized for reliable batch archiving.
+
+#### ✨ Key Features
+- **Metadata Embedding:** Stores JSON in PNG `tEXt`/`zTXt`/`iTXt` chunks automatically.
+- **Workflow Preservation:** Optionally saves full ComfyUI generation graph.
+- **Sequential Numbering:** Auto-increments filenames based on existing PNGs only.
+- **Caption Export:** Saves matching `.txt` files for prompt tracking.
+- **Compression Control:** Adjustable PNG compression level (0–9).
+- **Universal Paths:** Supports absolute/relative directories; auto-creates missing folders.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `images` | IMAGE | Input image batch. |
+| `save_directory` | STRING | Target output path. |
+| `filename_prefix` | STRING | Prefix for sequential naming. |
+| `save_workflow` | BOOLEAN | Embed ComfyUI workflow JSON (Default: `True`). |
+| `metadata_json` | STRING | Custom metadata to embed. |
+| `compression_level` | INT | PNG compression 0–9 (Default: `4`). |
+| `captions` | STRING | Optional text for `.txt` export. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `images` | IMAGE | Passthrough of input images. |
+| `saved_paths` | STRING | Comma-separated list of saved file paths. |
+
+---
+
+---

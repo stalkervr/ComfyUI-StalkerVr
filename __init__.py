@@ -44,6 +44,18 @@ from .nodes.string_builder import StringBuilder
 from .nodes.string_wrapper import StringWrapper
 from .nodes.string_normalize import StringNormalize
 
+from .nodes.image_grid_cropper import ImageGridCropper
+from .nodes.image_crop import ImageCropper
+from .nodes.image_ratio_resizer import ImageRatioResizer
+from .nodes.image_get_size import ImageGetSize
+from .nodes.image_desired_resolution import ImageDesiredResolution
+
+from .nodes.image_metadata_io import (
+    ImagesLoadWithMetadata,
+    ImageLoadWithMetadata,
+    ImageSaveWithMetadata
+)
+
 
 NODE_CLASS_MAPPINGS = {
     "WanVideoLoraCivitAIDownloader": WanVideoLoraCivitAIDownloader,
@@ -75,6 +87,16 @@ NODE_CLASS_MAPPINGS = {
     "StringBuilder": StringBuilder,
     "StringWrapper": StringWrapper,
     "StringNormalize": StringNormalize,
+
+    "ImageGridCropper": ImageGridCropper,
+    "ImageCropper": ImageCropper,
+    "ImageRatioResizer": ImageRatioResizer,
+    "ImageGetSize": ImageGetSize,
+    "ImageDesiredResolution": ImageDesiredResolution,
+
+    "ImagesLoadWithMetadata": ImagesLoadWithMetadata,
+    "ImageLoadWithMetadata": ImageLoadWithMetadata,
+    "ImageSaveWithMetadata": ImageSaveWithMetadata,
 }
 
 
@@ -108,6 +130,16 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "StringBuilder": "String Builder",
     "StringWrapper": "String Wrapper",
     "StringNormalize": "String Normalize",
+
+    "ImageGridCropper": "Image GridCropper",
+    "ImageCropper": "Image Cropper",
+    "ImageRatioResizer": "Image RatioResizer",
+    "ImageGetSize": "Image GetSize",
+    "ImageDesiredResolution": "Image DesiredResolution",
+
+    "ImagesLoadWithMetadata": "Images LoadWithMetadata",
+    "ImageLoadWithMetadata": "Image LoadWithMetadata",
+    "ImageSaveWithMetadata": "Image SaveWithMetadata",
 }
 
 

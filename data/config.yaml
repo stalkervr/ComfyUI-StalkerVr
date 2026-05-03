@@ -31,4 +31,14 @@ logging:
     StringWrapper: true
     StringNormalize: true
 
+    ImageGridCropper: true
+    ImageCropper: true
+    ImageRatioResizer: true
+    ImageGetSize: true
+    ImageDesiredResolution: true
+
+    ImagesLoadWithMetadata: true
+    ImageLoadWithMetadata: true
+    ImageSaveWithMetadata: true
+
     CurrentDateTime: true

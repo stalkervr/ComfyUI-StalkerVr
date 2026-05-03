@@ -31,6 +31,16 @@
 - **String Wrapper**: Prefix/suffix wrapping with intelligent whitespace handling and empty-segment filtering.
 - **String Normalize**: Universal whitespace normalizer that collapses line breaks and multiple spaces into single delimiters.
 
+### 🖼️ Added - Image Utilities
+- **Image Grid Cropper**: Splits images into fixed-size grids with automatic edge padding, native batch processing, and optional sequential disk export.
+- **Image Crop**: Margin-based cropping with optional bilinear size restoration and `[B, H, W, C]` batch support.
+- **Image Ratio Resizer**: Aspect-ratio enforcement using cover-mode center cropping, auto-orientation detection, and preset/custom ratios.
+- **Image Get Size**: Zero-overhead dimension extractor returning width, height, and configurable min/max resolution for dynamic routing.
+- **Image Desired Resolution**: WAN/BiRefNet-optimized resizer with 16-pixel alignment, aspect-ratio preservation, and dimension-only fallback mode.
+- **Images Load With Metadata**: Batch directory loader with universal format support, EXIF/PNG metadata extraction, alpha mask generation, and smart type conversion.
+- **Image Load With Metadata**: Single-image loader with JS-driven global metadata cache that survives ComfyUI mask editor resets and clipspace temp files.
+- **Image Save With Metadata**: High-reliability PNG archiver with embedded JSON metadata, workflow preservation, sequential numbering, and caption export.
+
 ### 📝 Documentation & Refactoring
 - Complete `README.md` overhaul with installation, API key setup, and per-node specifications in standardized Markdown format.
 - **Centralized Logging**: Replaced all `print()` statements with `LogEntry` across the entire node suite.
