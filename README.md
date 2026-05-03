@@ -947,3 +947,78 @@ Saves images as PNG with embedded custom metadata, workflow data, and optional c
 ---
 
 ---
+
+### 🔹 Format Date Path
+Generates a dynamic file path by replacing custom date/time tokens with the current system time. Forces re-execution on every run to ensure timestamps are always up-to-date.
+
+#### ✨ Key Features
+- **Real-Time Generation:** Uses `IS_CHANGED = NaN` to guarantee fresh paths on every workflow execution.
+- **Custom Token Syntax:** Supports `%date:yyyy-MM-dd%`, `%date:hhmmss%`, and standard Python `strftime` formats.
+- **Automatic Mapping:** Converts common UI tokens (`yyyy`, `MM`, `dd`, `HH`, `hh`, `mm`, `ss`) to Python `strftime` codes.
+- **Error Fallback:** Returns a clear error string if template parsing fails, preventing workflow crashes.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `template` | STRING | Path string containing `%date:...%` placeholders. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `formatted_path` | STRING | Fully resolved path with current date/time inserted. |
+
+---
+
+### 🔹 File Save Path
+Constructs a structured absolute path for saving files based on project root, name, content type, and current date. Ideal for organizing generative outputs in a consistent, date-partitioned directory tree.
+
+#### ✨ Key Features
+- **Hierarchical Path Building:** Automatically assembles `{root}/{project}/{type}/{YYYY-MM-DD}/`.
+- **System Expansion:** Resolves `~` and relative paths to absolute system paths via `expanduser().resolve()`.
+- **Auto-Date Partitioning:** Appends current date to keep outputs organized chronologically.
+- **Project Tracking:** Returns both the full path and the project name for downstream routing.
+- **Safe Fallback:** Returns a clear error string on path construction failure without breaking the workflow.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `project_root` | STRING | Base directory for all projects (supports `~` expansion). |
+| `project_name` | STRING | Subfolder name for the current project. |
+| `sub_folder_name` | STRING | Content type folder (e.g., `image`, `video`, `audio`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `save_path` | STRING | Complete absolute path ending with today's date. |
+| `project_name` | STRING | Passthrough of the input project name. |
+
+---
+
+### 🔹 Save Text File
+Saves text content to disk with dynamic date formatting, sequential numbering, and automatic collision handling. Designed for logging prompts, metadata, and workflow outputs.
+
+#### ✨ Key Features
+- **Date Placeholders:** Use `%date:yyyy-MM-dd%` or `%date:hhmmss%` in paths/filenames for real-time stamping.
+- **Smart Numbering:** Toggle between forced sequential numbering (`_00001`) or fallback numbering only when a file exists.
+- **Auto-Collision Avoidance:** Never overwrites existing files; automatically appends next available index.
+- **Extension Management:** Strips accidental double extensions and supports `.txt`, `.json`, `.info`, `.meta`, `.log`.
+- **Empty Input Guard:** Silently skips saving if input text is empty or contains only whitespace.
+- **Force Execution:** `IS_CHANGED = NaN` ensures timestamps and file checks run on every workflow trigger.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `project_root` | STRING | Base directory for all outputs (supports `~` expansion). |
+| `folder_path` | STRING | Subfolder path with optional `%date:...%` placeholders. |
+| `file_name` | STRING | Base filename with optional `%date:...%` placeholders. |
+| `extension` | COMBO | File extension (`.txt`, `.json`, `.info`, `.meta`, `.log`). |
+| `text` | STRING | Content to write to the file. |
+| `use_numbering` | BOOLEAN | Force `_NNNNN` suffix, or use only when file exists (Default: `False`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| *(None)* | - | `OUTPUT_NODE` only. File is written directly to disk. |
+
+---
+

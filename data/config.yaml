@@ -36,9 +36,11 @@ logging:
     ImageRatioResizer: true
     ImageGetSize: true
     ImageDesiredResolution: true
-
     ImagesLoadWithMetadata: true
     ImageLoadWithMetadata: true
     ImageSaveWithMetadata: true
 
     CurrentDateTime: true
+    FormatDatePath: true
+    FileSavePath: true
+    SaveTextFile: true

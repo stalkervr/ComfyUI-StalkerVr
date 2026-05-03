@@ -56,6 +56,10 @@ from .nodes.image_metadata_io import (
     ImageSaveWithMetadata
 )
 
+from .nodes.format_date_path import FormatDatePath
+from .nodes.file_save_path import FileSavePath
+from .nodes.save_text_file import SaveTextFile
+
 
 NODE_CLASS_MAPPINGS = {
     "WanVideoLoraCivitAIDownloader": WanVideoLoraCivitAIDownloader,
@@ -97,6 +101,10 @@ NODE_CLASS_MAPPINGS = {
     "ImagesLoadWithMetadata": ImagesLoadWithMetadata,
     "ImageLoadWithMetadata": ImageLoadWithMetadata,
     "ImageSaveWithMetadata": ImageSaveWithMetadata,
+
+    "FormatDatePath": FormatDatePath,
+    "FileSavePath": FileSavePath,
+    "SaveTextFile": SaveTextFile,
 }
 
 
@@ -140,6 +148,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ImagesLoadWithMetadata": "Images LoadWithMetadata",
     "ImageLoadWithMetadata": "Image LoadWithMetadata",
     "ImageSaveWithMetadata": "Image SaveWithMetadata",
+
+    "FormatDatePath": "FormatDatePath",
+    "FileSavePath": "FileSavePath",
+    "SaveTextFile": "SaveTextFile",
 }
 
 

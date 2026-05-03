@@ -41,6 +41,11 @@
 - **Image Load With Metadata**: Single-image loader with JS-driven global metadata cache that survives ComfyUI mask editor resets and clipspace temp files.
 - **Image Save With Metadata**: High-reliability PNG archiver with embedded JSON metadata, workflow preservation, sequential numbering, and caption export.
 
+### 📁 Added - IO & File Management Utilities
+- **FormatDatePath**: Real-time path generator with custom `%date:FORMAT%` token parsing and forced workflow re-execution for dynamic timestamping.
+- **FileSavePath**: Hierarchical path builder that auto-assembles `{root}/{project}/{type}/{date}/` structures for organized, date-partitioned output routing.
+- **SaveTextFile**: Smart file saver with dynamic date placeholders, collision-safe sequential numbering, automatic extension management, and empty-input bypass.
+
 ### 📝 Documentation & Refactoring
 - Complete `README.md` overhaul with installation, API key setup, and per-node specifications in standardized Markdown format.
 - **Centralized Logging**: Replaced all `print()` statements with `LogEntry` across the entire node suite.
