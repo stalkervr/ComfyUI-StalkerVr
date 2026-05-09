@@ -50,6 +50,12 @@
 - **YAML Save Prompt**: Saves positive/negative prompts to a hierarchical YAML database with person/type/group/sub-group nesting, toggle-controlled writing, whitespace normalization, and corruption-safe fallback.
 - **YAML Load Prompt**: Loads synchronized positive/negative prompt lists from YAML with hierarchical path resolution, optional name filtering, result limiting, and force-refresh execution for real-time database reads.
 
+### 🧩 Added - Production & Watermark Utilities
+- **Save Video With Metadata**: Encodes image batches to MP4 with embedded standard metadata tags and optional cover image attachment. Supports lossless/high/medium quality presets, FFmpeg fast-start optimization, and dynamic tag injection.
+- **Generate Creation Time**: Produces validated ISO-formatted timestamps for video metadata. Supports real-time generation or custom input with strict format checking and forced refresh execution.
+- **Text Watermark**: Adds customizable text overlays with automatic RTL language support, dimension-based auto-scaling, and precise 3×3 positioning. Features horizontal/vertical orientation, BiDi algorithm integration, and adjustable opacity/stroke rendering.
+- **Image Watermark**: Overlays image watermarks with multiple scaling modes (`percentage`, `fixed`, `fit_width`, `fit_height`), 9-point grid positioning, rotation, and opacity control. Supports external alpha masks and native batch processing.
+
 ### 📝 Documentation & Refactoring
 - Complete `README.md` overhaul with installation, API key setup, and per-node specifications in standardized Markdown format.
 - **Centralized Logging**: Replaced all `print()` statements with `LogEntry` across the entire node suite.

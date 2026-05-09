@@ -1085,3 +1085,117 @@ Loads prompts from a hierarchical YAML database as synchronized lists of positiv
 | `NEGATIVE` | STRING | List of negative prompt strings (synchronized with positive). |
 
 ---
+
+---
+
+### 🔹 Save Video With Metadata
+Encodes image batches to MP4 with embedded metadata (title, artist, genre, etc.) and optional cover image. Uses FFmpeg with quality presets for lossless, high, or medium output.
+
+#### ✨ Key Features
+- **Quality Presets:** `lossless` (CRF 0), `high` (CRF 17), `medium` (CRF 23) with matching FFmpeg presets.
+- **Metadata Embedding:** Supports standard MP4 tags via `-metadata` flags.
+- **Cover Image:** Attaches thumbnail as `attached_pic` disposition.
+- **Fast Start:** `-movflags +faststart` for web streaming compatibility.
+- **Force Execution:** `IS_CHANGED = NaN` ensures re-encoding on every run.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `images` | IMAGE | Input batch `[B, H, W, C]`. |
+| `output_path` | STRING | Target directory for MP4 file. |
+| `filename` | STRING | Output filename (without extension). |
+| `fps` | FLOAT | Frames per second (12–60). |
+| `quality` | COMBO | `lossless`, `high`, or `medium`. |
+| `cover_image` | IMAGE | Optional thumbnail for embedding. |
+| `title`/`artist`/`album`/etc. | STRING | Standard MP4 metadata fields. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `video_path` | STRING | Absolute path to saved MP4 file. |
+
+---
+
+### 🔹 Generate Creation Time
+Produces ISO-formatted timestamps for video metadata. Supports current time or custom input with validation.
+
+#### ✨ Key Features
+- **Real-Time or Custom:** Toggle between `now()` and user-defined datetime.
+- **Format Validation:** Ensures `YYYY-MM-DD HH:MM:SS` structure for custom values.
+- **Force Refresh:** `IS_CHANGED = NaN` guarantees fresh timestamp on every execution.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `use_current_time` | BOOLEAN | Use `datetime.now()` if `True` (Default: `True`). |
+| `custom_datetime` | STRING | Manual timestamp in `YYYY-MM-DD HH:MM:SS` format. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `creation_time` | STRING | Formatted timestamp string. |
+
+---
+
+### 🔹 Text Watermark
+Adds customizable text overlays with RTL language support, auto-scaling, and precise positioning controls.
+
+#### ✨ Key Features
+- **RTL Support:** Automatic BiDi handling for Arabic/Hebrew via `python-bidi` (fallback to manual reversal).
+- **Auto-Scaling:** Font size adapts to image dimensions (`width`, `height`, or `diagonal` reference).
+- **Flexible Layout:** Horizontal/vertical orientation, 3×3 positioning grid, margin offsets.
+- **Visual Polish:** White text with black stroke, adjustable opacity, anti-aliased rendering.
+- **Batch Processing:** Applies watermark to entire image sequence in one pass.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `images` | IMAGE | Input batch. |
+| `text` | STRING | Watermark content. |
+| `font_name` | COMBO | System font selector. |
+| `base_font_size` | INT | Starting font size (8–500). |
+| `auto_scale` | BOOLEAN | Enable dynamic sizing (Default: `True`). |
+| `auto_scale_factor` | FLOAT | Scale ratio relative to reference dimension (0.005–0.1). |
+| `scale_reference` | COMBO | `width`, `height`, or `diagonal`. |
+| `text_orientation` | COMBO | `horizontal` or `vertical`. |
+| `text_vertical_pos` / `text_horizontal_pos` | COMBO | 3-position selectors for alignment. |
+| `vertical_text_direction` | COMBO | `top-to-bottom` or `bottom-to-top` for vertical mode. |
+| `opacity` | FLOAT | Text transparency (0.0–1.0). |
+| `margin_x` / `margin_y` | INT | Offset from edges (-500 to 500). |
+| `force_rtl` | BOOLEAN | Override auto-detection for RTL languages. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `watermarked_images` | IMAGE | Batch with applied watermark. |
+
+---
+
+### 🔹 Image Watermark
+Overlays image watermarks with scaling modes, positioning presets, opacity control, and rotation.
+
+#### ✨ Key Features
+- **Scaling Modes:** `percentage` (relative to min dimension), `fixed`, `fit_width`, `fit_height`.
+- **Positioning:** 3×3 grid with independent X/Y margin offsets.
+- **Alpha Handling:** Supports transparency via alpha channel or external mask input.
+- **Rotation & Opacity:** Apply angle (-180° to 180°) and transparency (0–100%) independently.
+- **Batch Processing:** Applies watermark to entire sequence efficiently.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `images` | IMAGE | Input batch. |
+| `watermark` | IMAGE | Watermark image (any size). |
+| `mask` | MASK | Optional alpha mask for watermark transparency. |
+| `position` | COMBO | 9-position grid preset. |
+| `margin_x` / `margin_y` | INT | Offset from edges (-500 to 500). |
+| `scale_mode` | COMBO | `percentage`, `fixed`, `fit_width`, or `fit_height`. |
+| `scale_factor` | FLOAT | Scale value (interpretation depends on `scale_mode`). |
+| `opacity` | FLOAT | Watermark transparency (0–100). |
+| `rotation` | INT | Rotation angle (-180° to 180°). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `watermarked_images` | IMAGE | Batch with applied image watermark. |
+
