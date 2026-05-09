@@ -33,14 +33,14 @@ A versatile collection of custom nodes for ComfyUI, designed to streamline compl
 
 ## 🔐 API Key Setup
 
-1. Open the `data/` folder in this repository.
+1. Open the `config/` folder in this repository.
 2. Rename `secrets.yaml.example` to `secrets.yaml`.
 3. Open `secrets.yaml` and paste your API key:
    ```yaml
    civitai:
      api_key: "sk-xxxxxxxxxxxxxxxxxxxxxxxx"
    ```
-4. (Optional) Edit `data/config.yaml` to control console logging:
+4. (Optional) Edit `config/config.yaml` to control console logging:
    ```yaml
    logging:
      global_enabled: true
