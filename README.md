@@ -1204,7 +1204,7 @@ Overlays image watermarks with scaling modes, positioning presets, opacity contr
 ### 🤖 LLM & Vision-Language Utilities
 
 #### 🔹 LlamaCppTextGenerator
-Local vision-language text generator using GGUF models via `llama-cpp-python`. Supports auto-detection of model handlers (Qwen2.5/3-VL, LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, and structured performance logging. Ideal for local AI inference with image understanding capabilities.
+Local vision-language text generator using GGUF models via `llama-cpp-python`. Supports auto-detection of model handlers (Qwen3-VL, Qwen3.5 LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, and structured performance logging. Ideal for local AI inference with image understanding capabilities.
 
 ##### ✨ Key Features
 - **Auto-Handler Detection:** Automatically selects the correct chat handler based on the model filename (`qwen35`, `qwen3vl`, `llava15`, `llava16`, `minicpmv26`).
