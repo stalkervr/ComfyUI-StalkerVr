@@ -57,7 +57,8 @@
 - **Image Watermark**: Overlays image watermarks with multiple scaling modes (`percentage`, `fixed`, `fit_width`, `fit_height`), 9-point grid positioning, rotation, and opacity control. Supports external alpha masks and native batch processing.
 
 ### 🤖 Added - LLM & Vision-Language Utilities
-- **LlamaCppTextGenerator**: Local GGUF-based vision-language text generator with auto-handler detection (Qwen3-VL, Qwen3.5 LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, `<think>` tag stripping, GPU layer offloading, and structured performance logging.
+- **LlamaCppTextGenerator**: Local GGUF-based vision-language text generator with auto-handler detection 
+- (Qwen3-VL, Qwen3.5 LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, `<think>` tag stripping, GPU layer offloading, and structured performance logging.
 
 ### 📝 Documentation & Refactoring
 - Complete `README.md` overhaul with installation, API key setup, and per-node specifications in standardized Markdown format.
