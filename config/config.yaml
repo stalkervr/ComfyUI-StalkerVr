@@ -1,5 +1,8 @@
 # ComfyUI-StalkerVr Configuration
 
+llm:
+  system_prompts_path: "data/llm_system_instruction"
+
 # Enable global loging (for develop)
 logging:
   global_enabled: true
@@ -8,47 +11,49 @@ logging:
   node_settings:
     WanVideoLoraCivitAIDownloader: true
     WanVideoLoraPairCreator: true
-    WanVideoLoraPairSelect: true
+    WanVideoLoraPairSelect: false
     WanVideoEnhanceMotionAdvancedKJ: true
     WanVideoEnhanceMotionAdvanced: true
 
-    LoraLoaderExtended: true
-    LoraLoaderExtendedBatch: true
+    LoraLoaderExtended: false
+    LoraLoaderExtendedBatch: false
 
-    JsonFieldValueExtractor: true
-    JsonFieldRemover: true
-    JsonFieldReplaceExtend: true
-    JsonPromptToTextPromptConverter: true
-    JsonSerializeObject: true
-    JsonDeserializeObject: true
-    JsonFormat: true
-    JsonMinify: true
-    JsonPathLoader: true
-    JsonBuilder: true
+    JsonFieldValueExtractor: false
+    JsonFieldRemover: false
+    JsonFieldReplaceExtend: false
+    JsonPromptToTextPromptConverter: false
+    JsonSerializeObject: false
+    JsonDeserializeObject: false
+    JsonFormat: false
+    JsonMinify: false
+    JsonPathLoader: false
+    JsonBuilder: false
     JsonPairInput: false
 
-    StringBuilder: true
-    StringWrapper: true
-    StringNormalize: true
+    StringBuilder: false
+    StringWrapper: false
+    StringNormalize: false
 
-    ImageGridCropper: true
-    ImageCropper: true
-    ImageRatioResizer: true
-    ImageGetSize: true
-    ImageDesiredResolution: true
-    ImagesLoadWithMetadata: true
-    ImageLoadWithMetadata: true
-    ImageSaveWithMetadata: true
+    ImageGridCropper: false
+    ImageCropper: false
+    ImageRatioResizer: false
+    ImageGetSize: false
+    ImageDesiredResolution: false
+    ImagesLoadWithMetadata: false
+    ImageLoadWithMetadata: false
+    ImageSaveWithMetadata: false
 
-    CurrentDateTime: true
-    FormatDatePath: true
-    FileSavePath: true
-    SaveTextFile: true
+    CurrentDateTime: false
+    FormatDatePath: false
+    FileSavePath: false
+    SaveTextFile: false
 
-    YAMLLoadPrompt: true
-    YAMLSavePrompt: true
+    YAMLLoadPrompt: false
+    YAMLSavePrompt: false
 
-    ImageWatermark: true
-    TextWatermark: true
-    GenerateCreationTime: true
-    SaveVideoWithMetadata: true
+    ImageWatermark: false
+    TextWatermark: false
+    GenerateCreationTime: false
+    SaveVideoWithMetadata: false
+
+    LlamaCppTextGenerator: true

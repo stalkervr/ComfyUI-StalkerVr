@@ -66,6 +66,8 @@ from .nodes.utils.current_date_time import CurrentDateTime
 from .nodes.utils.format_date_path import FormatDatePath
 from .nodes.utils.file_save_path import FileSavePath
 
+from .nodes.llm.llama_cpp_text_generator import LlamaCppTextGenerator
+
 
 NODE_CLASS_MAPPINGS = {
     "WanVideoLoraCivitAIDownloader": WanVideoLoraCivitAIDownloader,
@@ -119,6 +121,8 @@ NODE_CLASS_MAPPINGS = {
     "GenerateCreationTime": GenerateCreationTime,
     "TextWatermark": TextWatermark,
     "ImageWatermark": ImageWatermark,
+
+    "LlamaCppTextGenerator": LlamaCppTextGenerator,
 }
 
 
@@ -174,6 +178,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "GenerateCreationTime": "GenerateCreationTime",
     "TextWatermark": "TextWatermark",
     "ImageWatermark": "ImageWatermark",
+
+    "LlamaCppTextGenerator": "LlamaCppTextGenerator",
 }
 
 

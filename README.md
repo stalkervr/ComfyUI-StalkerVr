@@ -1199,3 +1199,56 @@ Overlays image watermarks with scaling modes, positioning presets, opacity contr
 |--------|------|-------------|
 | `watermarked_images` | IMAGE | Batch with applied image watermark. |
 
+---
+
+### 🤖 LLM & Vision-Language Utilities
+
+#### 🔹 LlamaCppTextGenerator
+Local vision-language text generator using GGUF models via `llama-cpp-python`. Supports auto-detection of model handlers (Qwen2.5/3-VL, LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, and structured performance logging. Ideal for local AI inference with image understanding capabilities.
+
+##### ✨ Key Features
+- **Auto-Handler Detection:** Automatically selects the correct chat handler based on the model filename (`qwen35`, `qwen3vl`, `llava15`, `llava16`, `minicpmv26`).
+- **Vision-Language Support:** Accepts optional image inputs for multimodal queries (Image-to-Text).
+- **System Prompt Management:** Loads system instructions from files in a configurable directory or uses inline text.
+- **Response Cleaning:** Automatically strips `<think>` tags and markdown code blocks for cleaner output.
+- **Performance Logging:** Logs token usage, generation time, and tokens/sec to the console via the centralized logger.
+- **VRAM Optimization:** Configurable GPU layer offloading and context length management.
+- **Seed Control:** Deterministic generation with seed resolution support.
+
+##### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `model_path` | COMBO | Path to the main GGUF model file (from `models/LLM/`). |
+| `mmproj_path` | COMBO | Path to the CLIP/MMProj GGUF file (required for vision models). |
+| `handler_type` | COMBO | Model architecture selector: `auto`, `qwen35`, `qwen3vl`, `llava15`, `llava16`, `minicpmv26`. |
+| `seed` | INT | Random seed for generation (0 = random). |
+| `system_prompt_file` | COMBO | Optional path to a system prompt file (`.txt`, `.json`, etc.). Overrides inline prompt if selected. |
+| `system_prompt` | STRING | Inline system instruction text (used if `system_prompt_file` is "none"). |
+| `user_prompt` | STRING | The user's query or instruction. |
+| `max_tokens` | INT | Maximum number of tokens to generate (32–4096). |
+| `temperature` | FLOAT | Sampling temperature (0.0–2.0). Lower values are more deterministic. |
+| `top_p` | FLOAT | Nucleus sampling parameter (0.0–1.0). |
+| `repeat_penalty` | FLOAT | Penalty for repeating tokens (1.0–2.0). |
+| `gpu_layers` | INT | Number of layers to offload to GPU (0–80). |
+| `context_length` | INT | Context window size (512–32768). |
+| `enable_thinking` | BOOLEAN | Enable thinking mode for supported models (e.g., Qwen2.5). |
+| `image` | IMAGE | Optional input image for vision-language tasks. |
+
+##### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `response` | STRING | Generated text response from the LLM. |
+
+##### ⚠️ Requirements
+- Requires `llama-cpp-python` installed with CUDA support for GPU acceleration:
+  ```bash
+  CMAKE_ARGS="-DGGML_CUDA=on" pip install git+https://github.com/TAO71-AI/llama-cpp-python-JamePeng.git --force-reinstall --no-cache-dir
+  ```
+- Models must be placed in the models/LLM/ directory.
+- MMProj/CLIP models must also be in models/LLM/ and compatible with the chosen handler.
+
+
+- **Recommended Model Repositories:**
+  - [Qwen3.5 Collection](https://huggingface.co/collections/Qwen/qwen35) – Official Qwen3.5 models (Text & Vision).
+  - [Qwen3-VL Collection](https://huggingface.co/collections/Qwen/qwen3-vl) – Official Qwen3 Vision-Language models.
+  - [HauhauCS Uncensored Models](https://huggingface.co/HauhauCS/models) – Community fine-tuned uncensored variants.

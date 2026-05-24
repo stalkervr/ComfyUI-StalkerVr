@@ -12,21 +12,42 @@ class LogEntry:
 
 
 def log(entry: LogEntry):
-    """Prints log only if enabled in config."""
     config = ConfigManager()
-
-    # 1. Global switch
     if not config.get("logging.global_enabled", True):
         return
-
-    # 2. Class-specific switch
     if not config.get(f"logging.node_settings.{entry.node_class}", True):
         return
 
-    # 3. Formatted output
     print(f"🎯 [{entry.node_class}] {entry.title}")
     for key, value in entry.details.items():
         print(f"  {key}: {value}")
     if entry.footer:
         print(f"🎯 {entry.footer}")
-    print()  # Empty line for readability
+    print()
+
+
+def log_end(entry: LogEntry):
+    config = ConfigManager()
+    if not config.get("logging.global_enabled", True):
+        return
+    if not config.get(f"logging.node_settings.{entry.node_class}", True):
+        return
+
+    for key, value in entry.details.items():
+        print(f"{key}: {value}")
+
+    print(f"🎯 [{entry.node_class}] {entry.title}")
+    print()
+
+
+def log_start(entry: LogEntry):
+    config = ConfigManager()
+    if not config.get("logging.global_enabled", True):
+        return
+    if not config.get(f"logging.node_settings.{entry.node_class}", True):
+        return
+
+    print()
+    print(f"🎯 [{entry.node_class}] {entry.title}")
+    for key, value in entry.details.items():
+        print(f"{key}: {value}")
