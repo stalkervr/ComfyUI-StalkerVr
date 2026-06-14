@@ -1,7 +1,8 @@
 # ComfyUI-StalkerVr Configuration
 
 llm:
-  system_prompts_path: "data/llm_system_instruction"
+  system_prompts_path: "data/llm/system_instruction"
+  presets_path: "data/llm/presets"
 
 # Enable global loging (for develop)
 logging:
@@ -14,7 +15,6 @@ logging:
     WanVideoLoraPairSelect: false
     WanVideoEnhanceMotionAdvancedKJ: true
     WanVideoEnhanceMotionAdvanced: true
-
     LoraLoaderExtended: false
     LoraLoaderExtendedBatch: false
 

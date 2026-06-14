@@ -1,0 +1,17 @@
+{
+  "Qwen3VL": {
+    "creative": {
+      "description": "Creative cinematic scene expansion with richer visual detail",
+      "max_tokens": 2048,
+      "context_length": 12288,
+      "gpu_layers": -1,
+      "temperature": 0.92,
+      "top_p": 0.96,
+      "top_k": 75,
+      "min_p": 0.07,
+      "repeat_penalty": 1.05,
+      "presence_penalty": 0.10,
+      "frequency_penalty": 0.04
+    }
+  }
+}

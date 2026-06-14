@@ -67,6 +67,7 @@ from .nodes.utils.format_date_path import FormatDatePath
 from .nodes.utils.file_save_path import FileSavePath
 
 from .nodes.llm.llama_cpp_text_generator import LlamaCppTextGenerator
+from .nodes.llm.llama_cpp_preset_loader import LlamaPresetLoader
 
 
 NODE_CLASS_MAPPINGS = {
@@ -123,6 +124,7 @@ NODE_CLASS_MAPPINGS = {
     "ImageWatermark": ImageWatermark,
 
     "LlamaCppTextGenerator": LlamaCppTextGenerator,
+    "LlamaPresetLoader": LlamaPresetLoader,
 }
 
 
@@ -180,6 +182,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ImageWatermark": "ImageWatermark",
 
     "LlamaCppTextGenerator": "LlamaCppTextGenerator",
+    "LlamaPresetLoader": "LlamaPresetLoader",
 }
 
 

@@ -16,7 +16,7 @@ from llama_cpp.llama_chat_format import (
     Llava16ChatHandler,
     MiniCPMv26ChatHandler,
     Qwen3VLChatHandler,
-    Qwen35ChatHandler,
+    Qwen35ChatHandler, Gemma4ChatHandler,
 )
 
 from ...config.config_manager import ConfigManager
@@ -102,18 +102,25 @@ class LlamaCppTextGenerator:
             "required": {
                 "model_path": (cls.get_gguf_models(), {}),
                 "mmproj_path": (cls.get_gguf_models(), {}),
-                "handler_type": (["auto", "qwen35", "qwen3vl", "llava15", "llava16", "minicpmv26"], {"default": "auto"}),
+                "enable_thinking": ("BOOLEAN", {"default": False}),
+                "handler_type": (["auto", "qwen35", "qwen3vl", "gemma4", "llava15", "llava16", "minicpmv26"], {"default": "auto"}),
+                "max_tokens": ("INT", {"default": 1024, "min": 32, "max": 4096, "step": 32}),
+                "context_length": ("INT", {"default": 8192, "min": 512, "max": 32768, "step": 32}),
+                "gpu_layers": ("INT", {"default": -1, "min": -1, "max": 200}),
+                "temperature": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 2.0, "step": 0.01}),
+                "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "top_k": ("INT", {"default": 40, "min": 0, "max": 200}),
+                "min_p": ("FLOAT", {"default": 0.05, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "repeat_penalty": ("FLOAT", {"default": 1.1, "min": 1.0, "max": 2.0, "step": 0.01}),
+                "present_penalty": ("FLOAT", {"default": 0.0, "min": -2.0, "max": 2.0, "step": 0.01}),
+                "frequency_penalty": ("FLOAT", {"default": 0.0, "min": -2.0, "max": 2.0, "step": 0.01}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True}),
                 "system_prompt_file": (cls.get_system_prompt_files(), {}),
-                "system_prompt": ("STRING", {"multiline": True, "default": "You are a vision-language AI assistant."}),
-                "user_prompt": ("STRING", {"multiline": True, "default": "Describe this image."}),
-                "max_tokens": ("INT", {"default": 256, "min": 32, "max": 4096}),
-                "temperature": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 2.0}),
-                "top_p": ("FLOAT", {"default": 0.9, "min": 0.0, "max": 1.0}),
-                "repeat_penalty": ("FLOAT", {"default": 1.1, "min": 1.0, "max": 2.0}),
-                "gpu_layers": ("INT", {"default": 35, "min": 0, "max": 80}),
-                "context_length": ("INT", {"default": 4096, "min": 512, "max": 32768}),
-                "enable_thinking": ("BOOLEAN", {"default": False}),
+                "system_prompt": ("STRING", {"multiline": True, "default": "You are an AI assistant working with visual and linguistic perception. "
+                                                                           "Your task is to create detailed 120-160-word prompts for image generation. "
+                                                                           "You must analyze the input image and create a prompt in the style requested by the user in the prompt. "
+                                                                           "The output should be a completed prompt in English without comments or explanations."}),
+                "user_prompt": ("STRING", {"multiline": True, "default": "Write a detailed prompt for the input image."}),
             },
             "optional": {
                 "image": ("IMAGE",),
@@ -145,6 +152,9 @@ class LlamaCppTextGenerator:
         if "llava-v1.6" in name or "llava16" in name:
             return "llava16"
 
+        if "gemma4" in name or "gemma-4" in name:
+            return "gemma4"
+
         return "llava15"
 
     def tensor_to_pil(self, image):
@@ -171,12 +181,20 @@ class LlamaCppTextGenerator:
         return pil
 
     def clean_response(self, text):
+
         if not text:
             return ""
 
-        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
-        text = re.sub(r"</?think>", "", text)
+        text = re.sub(r"<think>.*?</think>","", text, flags=re.DOTALL)
+        text = re.sub(r"</?think>","", text)
         text = text.replace("```", "")
+
+        if "<channel|>" in text:
+            text = text.split("<channel|>")[-1]
+
+        text = re.sub(r"^\s*[\*\-]\s+.*?$","",text,flags=re.MULTILINE)
+        text = re.sub(r"Self-Correction:.*?$","",text,flags=re.MULTILINE)
+        text = re.sub(r"\n{2,}","\n\n",text)
 
         return text.strip()
 
@@ -206,6 +224,9 @@ class LlamaCppTextGenerator:
 
         if handler_type == "minicpmv26":
             return MiniCPMv26ChatHandler(clip_model_path=mmproj_path)
+
+        if handler_type == "gemma4":
+            return Gemma4ChatHandler(clip_model_path=mmproj_path,enable_thinking=enable_thinking, verbose=False)
 
         raise Exception(f"Unsupported handler: {handler_type}")
 
@@ -251,7 +272,11 @@ class LlamaCppTextGenerator:
         max_tokens,
         temperature,
         top_p,
+        top_k,
+        min_p,
         repeat_penalty,
+        present_penalty,
+        frequency_penalty,
         gpu_layers,
         context_length,
         enable_thinking,
@@ -317,7 +342,11 @@ class LlamaCppTextGenerator:
                 max_tokens=max_tokens,
                 temperature=temperature,
                 top_p=top_p,
+                top_k=top_k,
+                min_p=min_p,
                 repeat_penalty=repeat_penalty,
+                present_penalty=present_penalty,
+                frequency_penalty=frequency_penalty,
                 seed=seed,
             )
             generation_time = time.perf_counter() - generation_start

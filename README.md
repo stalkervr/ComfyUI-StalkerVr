@@ -1249,6 +1249,6 @@ Local vision-language text generator using GGUF models via `llama-cpp-python`. S
 
 
 - **Recommended Model Repositories:**
-  - [Qwen3.5 Collection](https://huggingface.co/collections/Qwen/qwen35) – Official Qwen3.5 models (Text & Vision).
-  - [Qwen3-VL Collection](https://huggingface.co/collections/Qwen/qwen3-vl) – Official Qwen3 Vision-Language models.
-  - [HauhauCS Uncensored Models](https://huggingface.co/HauhauCS/models) – Community fine-tuned uncensored variants.
+  - [Qwen3.5 Collection](https://huggingface.co/collections/unsloth/qwen35) – Community GGUF Qwen3.5 models (Text & Vision).
+  - [Qwen3-VL Collection](https://huggingface.co/collections/Qwen/qwen3-vl) – Official GGUF Qwen3 Vision-Language models (Text & Vision).
+  - [HauhauCS Uncensored Models](https://huggingface.co/HauhauCS/models) – Community GGUF Qwen3.5 fine-tuned uncensored variants (Text & Vision).
