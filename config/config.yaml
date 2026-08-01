@@ -15,6 +15,7 @@ logging:
     WanVideoLoraPairSelect: false
     WanVideoEnhanceMotionAdvancedKJ: true
     WanVideoEnhanceMotionAdvanced: true
+
     LoraLoaderExtended: false
     LoraLoaderExtendedBatch: false
 
@@ -33,6 +34,7 @@ logging:
     StringBuilder: false
     StringWrapper: false
     StringNormalize: false
+    StringWrapperBatch: false
 
     ImageGridCropper: false
     ImageCropper: false

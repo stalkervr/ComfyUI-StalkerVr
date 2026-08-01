@@ -813,26 +813,28 @@ Resizes images to a specific aspect ratio while maintaining original proportions
 ---
 
 ### 🔹 Image Get Size
-Extracts width, height, and resolution from an input image tensor. Useful for dynamic workflow branching based on image dimensions.
+Extracts width, height, and resolution from an input image tensor. Supports optional image input for dynamic workflow planning and passes the original image through for seamless chaining.
 
 #### ✨ Key Features
+- **Optional Input:** Works without an connected image, returning zero dimensions for logic-only workflows.
 - **Batch-Aware:** Correctly reads dimensions from ComfyUI's `[B, H, W, C]` tensor format.
 - **Flexible Resolution:** Toggle between minimum or maximum side length for adaptive workflows.
-- **Triple Output:** Returns width, height, and selected resolution in a single call.
-- **Zero Overhead:** Pure metadata extraction with no image copying or processing.
+- **Passthrough Support:** Returns the original image unchanged to maintain pipeline continuity.
+- **Zero Overhead:** Pure metadata extraction with no image copying or processing when an image is present.
 
 #### 📥 Input Parameters
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `image` | IMAGE | Input image tensor (single or batch). |
+| `image` | IMAGE | Optional input image tensor (single or batch). If omitted, returns 0 for all dimensions. |
 | `use_min_side` | BOOLEAN | If `True`, returns `min(width, height)` as resolution; else `max()` (Default: `True`). |
 
 #### 📤 Outputs
 | Output | Type | Description |
 |--------|------|-------------|
-| `width` | INT | Image width in pixels. |
-| `height` | INT | Image height in pixels. |
-| `resolution` | INT | Selected side length (`min` or `max`) for conditional logic. |
+| `image_passthrough` | IMAGE | The original input image, or `None` if no image was provided. |
+| `width` | INT | Image width in pixels (0 if no image). |
+| `height` | INT | Image height in pixels (0 if no image). |
+| `resolution` | INT | Selected side length (`min` or `max`) for conditional logic (0 if no image). |
 
 ---
 
@@ -871,6 +873,7 @@ Batch loads all supported images from a directory, extracting embedded metadata 
 - **Smart Type Conversion:** Automatically restores native Python types from string values.
 - **Alpha Handling:** Extracts transparency as inverted ComfyUI-compatible masks.
 - **Flexible Sorting:** By name, modification date, or filesystem order.
+- **Batch Limiting:** Control the number of loaded images to manage memory usage.
 - **Key Filtering:** Extract specific metadata fields across the entire batch.
 
 #### 📥 Input Parameters
@@ -878,6 +881,7 @@ Batch loads all supported images from a directory, extracting embedded metadata 
 |-----------|------|-------------|
 | `directory_path` | STRING | Path to image directory. |
 | `sort_by` | COMBO | `name`, `date`, or `none`. |
+| `max_images` | INT | Maximum number of images to load (`-1` for all). |
 | `extract_key` | STRING | Optional dot-notation key to extract separately. |
 
 #### 📤 Outputs
@@ -891,13 +895,12 @@ Batch loads all supported images from a directory, extracting embedded metadata 
 ---
 
 ### 🔹 Image Load With Metadata
-Loads a single uploaded image with global metadata caching. Designed to survive mask editor resets and maintain prompt/metadata context across sessions.
+Loads a single uploaded image with direct metadata extraction. Ensures data accuracy by reading directly from the file on every execution.
 
 #### ✨ Key Features
-- **Global JS Cache:** Automatically updates metadata on file selection via ComfyUI extension.
-- **Mask Editor Safe:** Retains cached metadata even when ComfyUI generates temp clipspace files.
+- **Direct File Reading:** Always reads fresh metadata from the source file, ensuring 100% accuracy.
+- **Mask Editor Safe:** Reliable operation even when ComfyUI generates temporary clipspace files.
 - **Nested Key Support:** Extract deep values using dot notation (e.g., `settings.model.seed`).
-- **Fallback Parsing:** Reads metadata directly from file if cache is empty.
 - **Standard Output:** Compatible with all native ComfyUI image/mask pipelines.
 
 #### 📥 Input Parameters
@@ -923,7 +926,7 @@ Saves images as PNG with embedded custom metadata, workflow data, and optional c
 - **Metadata Embedding:** Stores JSON in PNG `tEXt`/`zTXt`/`iTXt` chunks automatically.
 - **Workflow Preservation:** Optionally saves full ComfyUI generation graph.
 - **Sequential Numbering:** Auto-increments filenames based on existing PNGs only.
-- **Caption Export:** Saves matching `.txt` files for prompt tracking.
+- **Controlled Caption Export:** Toggle switch to enable/disable `.txt` file creation independently of input data.
 - **Compression Control:** Adjustable PNG compression level (0–9).
 - **Universal Paths:** Supports absolute/relative directories; auto-creates missing folders.
 
@@ -934,6 +937,7 @@ Saves images as PNG with embedded custom metadata, workflow data, and optional c
 | `save_directory` | STRING | Target output path. |
 | `filename_prefix` | STRING | Prefix for sequential naming. |
 | `save_workflow` | BOOLEAN | Embed ComfyUI workflow JSON (Default: `True`). |
+| `save_captions` | BOOLEAN | Enable saving of `.txt` caption files (Default: `False`). |
 | `metadata_json` | STRING | Custom metadata to embed. |
 | `compression_level` | INT | PNG compression 0–9 (Default: `4`). |
 | `captions` | STRING | Optional text for `.txt` export. |
@@ -943,6 +947,35 @@ Saves images as PNG with embedded custom metadata, workflow data, and optional c
 |--------|------|-------------|
 | `images` | IMAGE | Passthrough of input images. |
 | `saved_paths` | STRING | Comma-separated list of saved file paths. |
+
+---
+
+### 🔹 Image Resolution Calculator
+Calculates optimal image dimensions based on target megapixels and aspect ratio. Ensures all outputs are aligned to specific pixel boundaries (8, 16, 32, or 64) for model compatibility. Supports both preset ratios and custom string inputs.
+
+#### ✨ Key Features
+- **Megapixel Targeting:** Precisely calculates width and height to match a desired total pixel count.
+- **Alignment Control:** Rounds dimensions to the nearest multiple of 8, 16, 32, or 64 to satisfy encoder requirements.
+- **Flexible Ratios:** Choose from 20+ common presets (from 1:1 to 32:9) or enable custom ratio input.
+- **Chaining Support:** Outputs the raw aspect ratio string (e.g., `16:9`) for seamless connection to other nodes like resizers or video encoders.
+- **Zero Overhead:** Pure mathematical calculation with no image processing or preview generation.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `megapixel` | COMBO | Target resolution in megapixels (0.1 MP to 12.0 MP). |
+| `aspect_ratio` | COMBO | Preset aspect ratio selector (e.g., `16:9`, `3:2`). |
+| `divisible_by` | COMBO | Pixel alignment boundary (`8`, `16`, `32`, or `64`). |
+| `custom_ratio` | BOOLEAN | Enable manual entry of aspect ratio via text field. |
+| `custom_aspect_ratio` | STRING | Manual ratio input (format `W:H`, e.g., `2.35:1`). Used only if `custom_ratio` is enabled. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `width` | INT | Calculated image width in pixels. |
+| `height` | INT | Calculated image height in pixels. |
+| `resolution` | STRING | Formatted resolution string (e.g., `1024 x 768`). |
+| `aspect_ratio` | STRING | Raw aspect ratio string (e.g., `4:3`) for downstream node chaining. |
 
 ---
 
@@ -970,12 +1003,12 @@ Generates a dynamic file path by replacing custom date/time tokens with the curr
 ---
 
 ### 🔹 File Save Path
-Constructs a structured absolute path for saving files based on project root, name, content type, and current date. Ideal for organizing generative outputs in a consistent, date-partitioned directory tree.
+Constructs a structured absolute path for saving files based on project root, name, and content type. Supports optional date partitioning to keep outputs organized chronologically or in flat structures.
 
 #### ✨ Key Features
-- **Hierarchical Path Building:** Automatically assembles `{root}/{project}/{type}/{YYYY-MM-DD}/`.
+- **Flexible Hierarchy:** Assembles `{root}/{project}/{type}/` with an optional `{YYYY-MM-DD}` subfolder.
 - **System Expansion:** Resolves `~` and relative paths to absolute system paths via `expanduser().resolve()`.
-- **Auto-Date Partitioning:** Appends current date to keep outputs organized chronologically.
+- **Toggleable Date Partitioning:** Enable or disable automatic date folder creation based on workflow needs.
 - **Project Tracking:** Returns both the full path and the project name for downstream routing.
 - **Safe Fallback:** Returns a clear error string on path construction failure without breaking the workflow.
 
@@ -985,40 +1018,96 @@ Constructs a structured absolute path for saving files based on project root, na
 | `project_root` | STRING | Base directory for all projects (supports `~` expansion). |
 | `project_name` | STRING | Subfolder name for the current project. |
 | `sub_folder_name` | STRING | Content type folder (e.g., `image`, `video`, `audio`). |
+| `use_date_folder` | BOOLEAN | Append current date (`YYYY-MM-DD`) to the path (Default: `True`). |
 
 #### 📤 Outputs
 | Output | Type | Description |
 |--------|------|-------------|
-| `save_path` | STRING | Complete absolute path ending with today's date. |
+| `save_path` | STRING | Complete absolute path (with or without date folder). |
 | `project_name` | STRING | Passthrough of the input project name. |
 
 ---
 
-### 🔹 Save Text File
-Saves text content to disk with dynamic date formatting, sequential numbering, and automatic collision handling. Designed for logging prompts, metadata, and workflow outputs.
+---
+
+ ### 🔹 Text Save To File
+Saves text content to disk using a structured project-based path system. Supports both unique sequential file creation and single-file append mode with custom separators for logging and dataset building.
 
 #### ✨ Key Features
-- **Date Placeholders:** Use `%date:yyyy-MM-dd%` or `%date:hhmmss%` in paths/filenames for real-time stamping.
-- **Smart Numbering:** Toggle between forced sequential numbering (`_00001`) or fallback numbering only when a file exists.
-- **Auto-Collision Avoidance:** Never overwrites existing files; automatically appends next available index.
-- **Extension Management:** Strips accidental double extensions and supports `.txt`, `.json`, `.info`, `.meta`, `.log`.
-- **Empty Input Guard:** Silently skips saving if input text is empty or contains only whitespace.
-- **Force Execution:** `IS_CHANGED = NaN` ensures timestamps and file checks run on every workflow trigger.
+- **Structured Path Building:** Uses `{root}/{project}/{type}/` hierarchy consistent with `FileSavePath` node.
+- **Optional Date Partitioning:** Toggleable date folder (`YYYY-MM-DD`) for chronological organization.
+- **Dual Write Modes:** Create uniquely numbered files (`_00001`) OR append all entries to a single file.
+- **Custom Separators:** Configurable delimiter (e.g., `\n--\n`) between entries in append mode.
+- **Auto-Collision Avoidance:** In unique mode, never overwrites existing files; automatically finds next available index.
+- **Date Placeholders:** Supports `%date:FORMAT%` tokens in filenames for dynamic naming.
+- **Empty Input Guard:** Silently skips saving if input text is empty or whitespace-only.
 
 #### 📥 Input Parameters
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `project_root` | STRING | Base directory for all outputs (supports `~` expansion). |
-| `folder_path` | STRING | Subfolder path with optional `%date:...%` placeholders. |
-| `file_name` | STRING | Base filename with optional `%date:...%` placeholders. |
+| `project_name` | STRING | Project subfolder name. |
+| `sub_folder_name` | STRING | Content type folder (e.g., `text`, `prompts`). |
+| `file_name` | STRING | Base filename. Supports `%date:FORMAT%` placeholders. |
+| `use_date_folder` | BOOLEAN | Append current date folder to path (Default: `True`). |
 | `extension` | COMBO | File extension (`.txt`, `.json`, `.info`, `.meta`, `.log`). |
-| `text` | STRING | Content to write to the file. |
-| `use_numbering` | BOOLEAN | Force `_NNNNN` suffix, or use only when file exists (Default: `False`). |
+| `append_mode` | BOOLEAN | If `True`, write all data to one file; if `False`, create numbered files (Default: `False`). |
+| `separator` | STRING | Delimiter inserted between entries in append mode (Default: `\n--\n`). |
+| `text` | STRING | Optional text content to save. |
 
 #### 📤 Outputs
 | Output | Type | Description |
 |--------|------|-------------|
 | *(None)* | - | `OUTPUT_NODE` only. File is written directly to disk. |
+
+---
+
+### 🔹 Text Load From File
+Reads text content from a specified file path. Supports splitting content into a list of strings based on a custom separator for batch processing workflows.
+
+#### ✨ Key Features
+- **Flexible Reading:** Choose between reading the whole file as one string or splitting it into multiple parts.
+- **Batch Ready:** Always returns a list of strings compatible with ComfyUI's batch nodes.
+- **Supported Formats:** Works with `.txt`, `.json`, `.info`, `.meta`, and `.log` files.
+- **Custom Delimiters:** Use any string (including newlines) to split text into individual prompts or entries.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `file_path` | STRING | Absolute or relative path to the text file. |
+| `mode` | COMBO | `single`: read entire file. `split`: divide by separator. |
+| `separator` | STRING | Delimiter used for splitting in `split` mode (Default: `\n--\n`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `text` | STRING | List of strings (one item in `single` mode, multiple in `split` mode). |
+
+---
+
+### 🔹 Text Load From Directory
+Scans a directory for text files and loads their content. Offers two modes: reading each file as a separate entry or splitting all file contents into a single flat list of items.
+
+#### ✨ Key Features
+- **Directory Scanning:** Automatically finds all files with the selected extension in a target folder.
+- **Sorting Options:** Process files by name or modification date to maintain order.
+- **Flat List Mode:** In `split` mode, combines contents of all files into one continuous list of prompts/entries.
+- **Per-File Mode:** In `single` mode, returns a list where each item represents one full file.
+- **Error Resilience:** Skips unreadable files without breaking the workflow.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `directory_path` | STRING | Path to the folder containing text files. |
+| `extension` | COMBO | File extension to search for (`.txt`, `.json`, etc.). |
+| `mode` | COMBO | `single`: one string per file. `split`: split all content by separator. |
+| `sort_by` | COMBO | Sort files by `name` or `date`. |
+| `separator` | STRING | Delimiter used for splitting in `split` mode (Default: `\n--\n`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `text` | STRING | List of loaded strings. Count depends on mode and file contents. |
 
 ---
 

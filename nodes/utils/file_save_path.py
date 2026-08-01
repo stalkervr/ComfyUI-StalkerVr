@@ -3,6 +3,7 @@ from datetime import datetime
 from ...common.constants import CATEGORY_PREFIX
 from ...common.logger import LogEntry, log
 
+
 class FileSavePath:
     @classmethod
     def INPUT_TYPES(cls):
@@ -23,6 +24,10 @@ class FileSavePath:
                     "multiline": False,
                     "tooltip": "Content type folder: image, video, audio, etc."
                 }),
+                "use_date_folder": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Append current date (YYYY-MM-DD) to the path"
+                }),
             },
         }
 
@@ -31,21 +36,25 @@ class FileSavePath:
     FUNCTION = "build_path"
     CATEGORY = f"{CATEGORY_PREFIX}/Utils"
 
-    def build_path(self, project_root, project_name, sub_folder_name):
+    def build_path(self, project_root, project_name, sub_folder_name, use_date_folder=True):
         log(LogEntry(
             node_class="FileSavePath",
             title="Building path",
             details={
                 "Root": project_root,
                 "Project": project_name,
-                "Subfolder": sub_folder_name.strip()
+                "Subfolder": sub_folder_name.strip(),
+                "Use Date": use_date_folder
             }
         ))
         try:
             base_path = Path(project_root).expanduser().resolve()
             full_path = base_path / project_name / sub_folder_name.strip()
-            date_string = datetime.now().strftime("%Y-%m-%d")
-            full_path = full_path / date_string
+
+            if use_date_folder:
+                date_string = datetime.now().strftime("%Y-%m-%d")
+                full_path = full_path / date_string
+
             path_str = str(full_path)
 
             log(LogEntry(

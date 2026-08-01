@@ -37,12 +37,14 @@ from .nodes.json.json_pair_input import JsonPairInput
 from .nodes.string.string_builder import StringBuilder
 from .nodes.string.string_wrapper import StringWrapper
 from .nodes.string.string_normalize import StringNormalize
+from .nodes.string.string_wrapper_batch import StringWrapperBatch
 
 from .nodes.image.image_grid_cropper import ImageGridCropper
 from .nodes.image.image_crop import ImageCropper
 from .nodes.image.image_ratio_resizer import ImageRatioResizer
 from .nodes.image.image_get_size import ImageGetSize
 from .nodes.image.image_desired_resolution import ImageDesiredResolution
+from .nodes.image.image_resolution_calculator import ImageResolutionCalculator
 
 from .nodes.image.image_metadata_io import (
     ImagesLoadWithMetadata,
@@ -58,13 +60,18 @@ from .nodes.production.generate_creation_time import GenerateCreationTime
 from .nodes.production.text_watermark import TextWatermark
 from .nodes.production.image_watermark import ImageWatermark
 
-from .nodes.io.save_text_file import SaveTextFile
+from .nodes.text.save_text_file import TextSaveToFile
+from .nodes.text.text_load_from_file import TextLoadFromFile
+from .nodes.text.text_load_from_directory import TextLoadFromDirectory
 
 from .nodes.utils.logger import Logger
 from .nodes.utils.switch_any import SwitchAny
 from .nodes.utils.current_date_time import CurrentDateTime
 from .nodes.utils.format_date_path import FormatDatePath
 from .nodes.utils.file_save_path import FileSavePath
+from .nodes.utils.get_file_name import FileNameExtractor
+from .nodes.utils.text_keyword_checker import TextKeywordChecker
+from .nodes.utils.text_find_replace import TextFindAndReplace
 
 from .nodes.llm.llama_cpp_text_generator import LlamaCppTextGenerator
 from .nodes.llm.llama_cpp_preset_loader import LlamaPresetLoader
@@ -84,6 +91,9 @@ NODE_CLASS_MAPPINGS = {
     "SwitchAny": SwitchAny,
     "CalculateFrameCount": CalculateFrameCount,
     "CurrentDateTime": CurrentDateTime,
+    "FileNameExtractor": FileNameExtractor,
+    "TextKeywordChecker": TextKeywordChecker,
+    "TextFindAndReplace": TextFindAndReplace,
 
     "JsonFieldValueExtractor": JsonFieldValueExtractor,
     "JsonFieldRemover": JsonFieldRemover,
@@ -100,12 +110,14 @@ NODE_CLASS_MAPPINGS = {
     "StringBuilder": StringBuilder,
     "StringWrapper": StringWrapper,
     "StringNormalize": StringNormalize,
+    "StringWrapperBatch": StringWrapperBatch,
 
     "ImageGridCropper": ImageGridCropper,
     "ImageCropper": ImageCropper,
     "ImageRatioResizer": ImageRatioResizer,
     "ImageGetSize": ImageGetSize,
     "ImageDesiredResolution": ImageDesiredResolution,
+    "ImageResolutionCalculator": ImageResolutionCalculator,
 
     "ImagesLoadWithMetadata": ImagesLoadWithMetadata,
     "ImageLoadWithMetadata": ImageLoadWithMetadata,
@@ -113,7 +125,10 @@ NODE_CLASS_MAPPINGS = {
 
     "FormatDatePath": FormatDatePath,
     "FileSavePath": FileSavePath,
-    "SaveTextFile": SaveTextFile,
+
+    "TextSaveToFile": TextSaveToFile,
+    "TextLoadFromFile": TextLoadFromFile,
+    "TextLoadFromDirectory": TextLoadFromDirectory,
 
     "YAMLSavePrompt": YAMLSavePrompt,
     "YAMLLoadPrompt": YAMLLoadPrompt,
@@ -142,6 +157,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SwitchAny": "SwitchAny",
     "CalculateFrameCount": "CalculateFrameCount",
     "CurrentDateTime": "CurrentDateTime",
+    "FileNameExtractor": "FileNameExtractor",
+    "TextKeywordChecker": "TextKeywordChecker",
+    "TextFindAndReplace": "TextFindAndReplace",
 
     "JsonFieldValueExtractor": "JSON FieldValueExtractor",
     "JsonFieldRemover": "JSON FieldRemover",
@@ -158,12 +176,14 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "StringBuilder": "String Builder",
     "StringWrapper": "String Wrapper",
     "StringNormalize": "String Normalize",
+    "StringWrapperBatch": "String WrapperBatch",
 
     "ImageGridCropper": "Image GridCropper",
     "ImageCropper": "Image Cropper",
     "ImageRatioResizer": "Image RatioResizer",
     "ImageGetSize": "Image GetSize",
     "ImageDesiredResolution": "Image DesiredResolution",
+    "ImageResolutionCalculator": "Image ResolutionCalculator",
 
     "ImagesLoadWithMetadata": "Images LoadWithMetadata",
     "ImageLoadWithMetadata": "Image LoadWithMetadata",
@@ -171,7 +191,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
     "FormatDatePath": "FormatDatePath",
     "FileSavePath": "FileSavePath",
-    "SaveTextFile": "SaveTextFile",
+
+    "TextSaveToFile": "Text SaveToFile",
+    "TextLoadFromFile": "Text LoadFromFile",
+    "TextLoadFromDirectory": "Text LoadFromDirectory",
 
     "YAMLSavePrompt": "YAML SavePrompt",
     "YAMLLoadPrompt": "YAML LoadPrompt",

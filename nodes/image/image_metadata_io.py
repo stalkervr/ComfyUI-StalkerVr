@@ -10,36 +10,6 @@ from pathlib import Path
 from ...common.constants import CATEGORY_PREFIX
 from ...common.logger import LogEntry, log
 
-from aiohttp import web
-from server import PromptServer
-
-_METADATA_CACHE = {}
-
-
-@PromptServer.instance.routes.post("/stalker/metadata_cache")
-async def cache_latest_metadata(request):
-    try:
-        data = await request.json()
-        filename = data.get("filename")
-        if not filename:
-            return web.json_response({"error": "no filename"}, status=400)
-
-        image_path = folder_paths.get_annotated_filepath(filename)
-        if not os.path.exists(image_path):
-            return web.json_response({"error": "file not found"}, status=404)
-
-        with Image.open(image_path) as img:
-            raw_meta = _extract_png_metadata_static(img)
-            parsed_meta = _parse_metadata_static(raw_meta)
-            global _METADATA_CACHE
-            _METADATA_CACHE = parsed_meta
-
-        log(LogEntry(node_class="MetadataCache", title="Updated latest metadata", details={"Filename": filename}))
-        return web.json_response({"status": "success"})
-    except Exception as e:
-        log(LogEntry(node_class="MetadataCache", title="Cache update error", details={"Error": str(e)}))
-        return web.json_response({"error": str(e)}, status=500)
-
 
 def _extract_png_metadata_static(img):
     metadata = {}
@@ -86,6 +56,70 @@ def _smart_convert_value_static(value):
             pass
     return val
 
+class ImageLoadWithMetadata:
+    @classmethod
+    def INPUT_TYPES(cls):
+        input_dir = folder_paths.get_input_directory()
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+        return {
+            "required": {"image": (sorted(files), {"image_upload": True})},
+            "optional": {"extract_key": ("STRING", {"default": ""})}
+        }
+
+    RETURN_TYPES = ("IMAGE", "MASK", "STRING", "STRING")
+    RETURN_NAMES = ("image", "mask", "metadata_json", "metadata_value")
+    FUNCTION = "load_image"
+    CATEGORY = f"{CATEGORY_PREFIX}/Image"
+
+    def load_image(self, image, extract_key=""):
+        image_path = folder_paths.get_annotated_filepath(image)
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"File not found: {image_path}")
+
+        img = Image.open(image_path)
+        img = ImageOps.exif_transpose(img)
+
+        raw_meta = self._extract_png_metadata(img)
+        final_metadata = self._parse_metadata(raw_meta)
+
+        frame = img.convert("RGB")
+        image_tensor = torch.from_numpy(np.array(frame).astype(np.float32) / 255.0)[None,]
+
+        if 'A' in img.getbands():
+            mask_np = np.array(img.getchannel('A')).astype(np.float32) / 255.0
+            mask_tensor = (1.0 - torch.from_numpy(mask_np)).unsqueeze(0)
+        else:
+            mask_tensor = torch.zeros((frame.size[1], frame.size[0]), dtype=torch.float32).unsqueeze(0)
+
+        metadata_json = json.dumps(final_metadata, ensure_ascii=False, indent=2)
+        metadata_value = ""
+
+        if extract_key.strip():
+            current = final_metadata
+            for part in extract_key.strip().split("."):
+                if isinstance(current, dict) and part in current:
+                    current = current[part]
+                else:
+                    current = None
+                    break
+            if current is not None:
+                metadata_value = json.dumps(current, ensure_ascii=False, indent=2) if isinstance(current, (dict, list)) else str(current)
+
+        log(LogEntry(node_class="ImageLoadWithMetadata", title="Loaded",
+                     details={"File": image, "Size": f"{img.width}x{img.height}", "Mode": img.mode}))
+        return (image_tensor, mask_tensor, metadata_json, metadata_value)
+
+    def _extract_png_metadata(self, img):
+        return _extract_png_metadata_static(img)
+
+    def _parse_metadata(self, raw_metadata):
+        return _parse_metadata_static(raw_metadata)
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, image, extract_key=""):
+        if not folder_paths.exists_annotated_filepath(image):
+            return "Invalid image file: {}".format(image)
+        return True
 
 class ImagesLoadWithMetadata:
     @classmethod
@@ -98,6 +132,7 @@ class ImagesLoadWithMetadata:
             "required": {
                 "directory_path": ("STRING", {"default": "", "tooltip": "Directory path containing image files"}),
                 "sort_by": (["name", "date", "none"], {"default": "name", "tooltip": "Sort order"}),
+                "max_images": ("INT", {"default": -1, "min": -1, "step": 1, "tooltip": "Max images to load (-1 for all)"}),
             },
             "optional": {
                 "extract_key": ("STRING", {"default": "", "tooltip": "Extract specific metadata key"}),
@@ -110,7 +145,7 @@ class ImagesLoadWithMetadata:
     CATEGORY = f"{CATEGORY_PREFIX}/Image"
     OUTPUT_IS_LIST = (True, True, True, True)
 
-    def load_images_with_metadata(self, directory_path, sort_by="name", extract_key=""):
+    def load_images_with_metadata(self, directory_path, sort_by="name", max_images=-1, extract_key=""):
         directory_path = directory_path.strip()
         if not directory_path:
             raise ValueError("Directory path cannot be empty")
@@ -128,6 +163,10 @@ class ImagesLoadWithMetadata:
             image_files.sort(key=lambda x: x.name)
         elif sort_by == "date":
             image_files.sort(key=lambda x: x.stat().st_mtime)
+
+        # Применяем ограничение на количество изображений
+        if max_images > 0:
+            image_files = image_files[:max_images]
 
         image_list, mask_list, meta_json_list, meta_val_list = [], [], [], []
 
@@ -185,78 +224,6 @@ class ImagesLoadWithMetadata:
         return _smart_convert_value_static(value)
 
 
-class ImageLoadWithMetadata:
-    @classmethod
-    def INPUT_TYPES(cls):
-        input_dir = folder_paths.get_input_directory()
-        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
-        return {
-            "required": {"image": (sorted(files), {"image_upload": True})},
-            "optional": {"extract_key": ("STRING", {"default": ""})}
-        }
-
-    RETURN_TYPES = ("IMAGE", "MASK", "STRING", "STRING")
-    RETURN_NAMES = ("image", "mask", "metadata_json", "metadata_value")
-    FUNCTION = "load_image"
-    CATEGORY = f"{CATEGORY_PREFIX}/Image"
-
-    def load_image(self, image, extract_key=""):
-        image_path = folder_paths.get_annotated_filepath(image)
-        if not os.path.exists(image_path):
-            raise FileNotFoundError(f"File not found: {image_path}")
-
-        img = Image.open(image_path)
-        img = ImageOps.exif_transpose(img)
-
-        final_metadata = _METADATA_CACHE.copy()
-        if not final_metadata:
-            try:
-                final_metadata = self._parse_metadata(self._extract_png_metadata(img))
-            except Exception as e:
-                log(LogEntry(node_class="ImageLoadWithMetadata", title="Fallback metadata failed",
-                             details={"Error": str(e)}))
-                final_metadata = {}
-
-        frame = img.convert("RGB")
-        image_tensor = torch.from_numpy(np.array(frame).astype(np.float32) / 255.0)[None,]
-
-        if 'A' in img.getbands():
-            mask_np = np.array(img.getchannel('A')).astype(np.float32) / 255.0
-            mask_tensor = (1.0 - torch.from_numpy(mask_np)).unsqueeze(0)
-        else:
-            mask_tensor = torch.zeros((frame.size[1], frame.size[0]), dtype=torch.float32).unsqueeze(0)
-
-        metadata_json = json.dumps(final_metadata, ensure_ascii=False, indent=2)
-        metadata_value = ""
-
-        if extract_key.strip():
-            current = final_metadata
-            for part in extract_key.strip().split("."):
-                if isinstance(current, dict) and part in current:
-                    current = current[part]
-                else:
-                    current = None
-                    break
-            if current is not None:
-                metadata_value = json.dumps(current, ensure_ascii=False, indent=2) if isinstance(current, (dict, list)) else str(current)
-
-        log(LogEntry(node_class="ImageLoadWithMetadata", title="Loaded",
-                     details={"File": image, "Size": f"{img.width}x{img.height}", "Mode": img.mode}))
-        return (image_tensor, mask_tensor, metadata_json, metadata_value)
-
-    def _extract_png_metadata(self, img):
-        return _extract_png_metadata_static(img)
-
-    def _parse_metadata(self, raw_metadata):
-        return _parse_metadata_static(raw_metadata)
-
-    @classmethod
-    def VALIDATE_INPUTS(cls, image, extract_key=""):
-        if not folder_paths.exists_annotated_filepath(image):
-            return "Invalid image file: {}".format(image)
-        return True
-
-
 class ImageSaveWithMetadata:
     @classmethod
     def INPUT_TYPES(cls):
@@ -266,6 +233,7 @@ class ImageSaveWithMetadata:
                 "save_directory": ("STRING", {"default": "", "tooltip": "Output directory path"}),
                 "filename_prefix": ("STRING", {"default": "output", "tooltip": "Filename prefix"}),
                 "save_workflow": ("BOOLEAN", {"default": True, "tooltip": "Embed ComfyUI workflow"}),
+                "save_captions": ("BOOLEAN", {"default": False, "tooltip": "Save captions to text files if provided"}),
                 "metadata_json": ("STRING", {"default": "{}", "multiline": False, "dynamicPrompts": False}),
                 "compression_level": ("INT", {"default": 0, "min": 0, "max": 9, "step": 1}),
             },
@@ -280,7 +248,8 @@ class ImageSaveWithMetadata:
     OUTPUT_NODE = True
 
     def save_images_with_metadata(self, images, save_directory, filename_prefix, save_workflow,
-                                  metadata_json, compression_level=4, captions="", prompt=None, extra_pnginfo=None):
+                                  save_captions=False, metadata_json="", compression_level=4,
+                                  captions="", prompt=None, extra_pnginfo=None):
         save_directory = save_directory.strip()
         filename_prefix = filename_prefix.strip()
         if not save_directory: raise ValueError("Directory cannot be empty")
@@ -298,7 +267,8 @@ class ImageSaveWithMetadata:
         next_number = self._get_next_number(output_dir, filename_prefix)
 
         saved_paths = []
-        has_captions = bool(captions.strip())
+        # Проверяем наличие данных в captions только если включен переключатель
+        has_captions = save_captions and bool(captions.strip())
 
         for i in range(images.shape[0]):
             idx = next_number + i

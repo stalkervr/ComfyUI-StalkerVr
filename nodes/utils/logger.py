@@ -36,9 +36,9 @@ class Logger:
             }
         }
 
-    @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        return float("nan")
+    # @classmethod
+    # def IS_CHANGED(cls, **kwargs):
+    #     return float("nan")
 
     RETURN_TYPES = (Everything("*"), "STRING")
     RETURN_NAMES = ("passthrough", "log_string")
