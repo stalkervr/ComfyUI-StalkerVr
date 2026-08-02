@@ -1184,6 +1184,93 @@ Applies a common prefix and suffix to every string in a batch. Ideal for adding 
 ---
 
 ---
+###  Any List Length
+Returns the total count of items in any list object passed via Wildcard. Essential for determining batch size before processing or configuring loop iterations. Works with strings, images, latents, or mixed types without type conversion.
+
+#### ✨ Key Features
+- **Type Agnostic:** Accepts lists of any data type (STRING, IMAGE, LATENT, INT) via Wildcard input.
+- **Safe Fallback:** Automatically wraps non-list inputs into a single-item list to prevent errors.
+- **Zero Overhead:** Pure metadata extraction with no data copying or modification.
+- **Universal Compatibility:** Designed to work seamlessly with outputs from `AnyListIndexer`, `TextLoadFromFileList`, and other list-returning nodes.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `input_list` | * | List object to measure. Accepts any data type via Wildcard. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `count` | INT | Total number of items in the input list. |
+
+---
+
+###  Any Get Item
+Retrieves a specific element from a list by index without type conversion. Returns the item in its native format, making it safe for use with images, latents, and complex objects. Returns `None` if the index is out of bounds.
+
+#### ✨ Key Features
+- **Zero-Copy Access:** Returns the original object reference without cloning or converting to string.
+- **Bounds Safety:** Logs an error and returns `None` instead of crashing when index exceeds list length.
+- **Wildcard Output:** Preserves the exact type of the retrieved item for downstream compatibility.
+- **Flexible Indexing:** Supports dynamic integer inputs for programmatic list navigation.
+
+####  Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `input_list` | * | Source list object. Accepts any data type via Wildcard. |
+| `index` | INT | Zero-based position of the item to retrieve (Default: `0`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `item` | * | The element at the specified index in its original type, or `None` if out of bounds. |
+
+---
+
+### 🔹 Any List Indexer
+Splits a list into two parallel outputs: the original items (preserving their native types) and their corresponding integer indices `[0, 1, 2...]`. Enables synchronized processing of data and positional metadata.
+
+#### ✨ Key Features
+- **Parallel Streams:** Outputs both items and indices as separate Wildcard lists for independent routing.
+- **Type Preservation:** Items are returned exactly as received — no string conversion or serialization.
+- **Sequential Indices:** Generates a clean integer sequence matching the input list length.
+- **Batch Bridge:** Ideal for connecting list-based logic to batch-processing nodes that require positional context.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `input_list` | * | Source list to split. Accepts any data type via Wildcard. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `items` | * | Original list elements in their native types. |
+| `indices` | * | Integer list `[0, 1, 2, ...]` matching the item positions. |
+
+---
+
+### 🔹 Any List To Batch
+Converts a list object received via Wildcard into a ComfyUI batch output (`OUTPUT_IS_LIST`). Triggers automatic unpacking so downstream nodes process each item individually. Essential for bridging structural list operations with standard batch workflows.
+
+#### ✨ Key Features
+- **Batch Activation:** Adds `OUTPUT_IS_LIST` flag to force ComfyUI to iterate over each list element.
+- **Type Transparent:** Works with any data type — strings, tensors, dictionaries, or primitives.
+- **Safe Wrapping:** Converts single non-list inputs into a one-element batch automatically.
+- **Workflow Bridge:** Connects list-manipulation nodes (like `AnyListIndexer`) to generators, savers, and processors expecting batched inputs.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `input_list` | * | List object to convert to batch. Accepts any data type via Wildcard. |
+
+####  Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `output_batch` | * | Batch-ready output that triggers per-item execution in downstream nodes. |
+
+---
+
+---
 
 ### 🔹 YAML Save Prompt
 Saves positive and negative prompts into a hierarchically organized YAML database. Supports person → type → group → sub-group nesting with automatic whitespace normalization and toggle-controlled saving.
@@ -1359,6 +1446,8 @@ Overlays image watermarks with scaling modes, positioning presets, opacity contr
 | Output | Type | Description |
 |--------|------|-------------|
 | `watermarked_images` | IMAGE | Batch with applied image watermark. |
+
+---
 
 ---
 

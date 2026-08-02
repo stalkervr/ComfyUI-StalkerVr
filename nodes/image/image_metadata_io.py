@@ -224,6 +224,109 @@ class ImagesLoadWithMetadata:
         return _smart_convert_value_static(value)
 
 
+class ImagesLoadWithMetadataList:
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("nan")
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "directory_path": ("STRING", {"default": "", "tooltip": "Directory path containing image files"}),
+                "sort_by": (["name", "date", "none"], {"default": "name", "tooltip": "Sort order"}),
+                "max_images": ("INT", {"default": -1, "min": -1, "step": 1, "tooltip": "Max images to load (-1 for all)"}),
+            },
+            "optional": {
+                "extract_key": ("STRING", {"default": "", "tooltip": "Extract specific metadata key"}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "MASK", "STRING", "STRING")
+    RETURN_NAMES = ("image", "mask", "metadata_json", "metadata_value")
+    FUNCTION = "load_images_with_metadata"
+    CATEGORY = f"{CATEGORY_PREFIX}/Image"
+    #OUTPUT_IS_LIST = (True, True, True, True)
+
+    def load_images_with_metadata(self, directory_path, sort_by="name", max_images=-1, extract_key=""):
+        directory_path = directory_path.strip()
+        if not directory_path:
+            raise ValueError("Directory path cannot be empty")
+
+        directory = Path(directory_path)
+        if not directory.exists():
+            return ([], [], [], [])
+
+        supported_ext = {'.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff', '.tif'}
+        image_files = [e for e in directory.iterdir() if e.is_file() and e.suffix.lower() in supported_ext]
+        if not image_files:
+            return ([], [], [], [])
+
+        if sort_by == "name":
+            image_files.sort(key=lambda x: x.name)
+        elif sort_by == "date":
+            image_files.sort(key=lambda x: x.stat().st_mtime)
+
+        # Применяем ограничение на количество изображений
+        if max_images > 0:
+            image_files = image_files[:max_images]
+
+        image_list, mask_list, meta_json_list, meta_val_list = [], [], [], []
+
+        for file_path in image_files:
+            try:
+                img = Image.open(file_path)
+                img = ImageOps.exif_transpose(img)
+
+                raw_meta = self._extract_image_metadata(img)
+                metadata = self._parse_metadata(raw_meta)
+                meta_json_list.append(json.dumps(metadata, ensure_ascii=False, indent=2))
+
+                extracted = metadata.get(extract_key.strip(), "") if extract_key.strip() else ""
+                meta_val_list.append(extracted)
+
+                if 'A' in img.getbands():
+                    alpha = np.array(img.getchannel('A')).astype(np.float32) / 255.0
+                    mask_list.append((1.0 - torch.from_numpy(alpha)).unsqueeze(0))
+                else:
+                    mask_list.append(torch.zeros((img.size[1], img.size[0]), dtype=torch.float32).unsqueeze(0))
+
+                img_rgb = img.convert('RGB')
+                img_np = np.array(img_rgb).astype(np.float32) / 255.0
+                image_list.append(torch.from_numpy(img_np).unsqueeze(0))
+
+                log(LogEntry(node_class="ImagesLoadWithMetadataList", title="Loaded", details={"File": file_path.name}))
+            except Exception as e:
+                log(LogEntry(node_class="ImagesLoadWithMetadataList", title="Skipped",
+                             details={"File": file_path.name, "Error": str(e)}))
+                continue
+
+        return (image_list, mask_list, meta_json_list, meta_val_list)
+
+    def _extract_image_metadata(self, img):
+        metadata = {}
+        if hasattr(img, 'text') and isinstance(img.text, dict):
+            for k, v in img.text.items():
+                if isinstance(v, str): metadata[k] = v
+        if hasattr(img, 'info') and isinstance(img.info, dict):
+            for k, v in img.info.items():
+                if isinstance(v, str) and k not in ['dpi', 'gamma', 'transparency', 'aspect']:
+                    metadata[k] = v
+        if hasattr(img, '_getexif') and callable(img._getexif):
+            exif_data = img._getexif()
+            if exif_data:
+                for tag, value in exif_data.items():
+                    if isinstance(value, (str, int, float)) and len(str(value)) < 1000:
+                        metadata[f"exif_{tag}"] = str(value)
+        return metadata
+
+    def _parse_metadata(self, raw_metadata):
+        return _parse_metadata_static(raw_metadata)
+
+    def _smart_convert_value(self, value):
+        return _smart_convert_value_static(value)
+
+
 class ImageSaveWithMetadata:
     @classmethod
     def INPUT_TYPES(cls):

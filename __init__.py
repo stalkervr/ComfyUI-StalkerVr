@@ -47,6 +47,7 @@ from .nodes.image.image_resolution_calculator import ImageResolutionCalculator
 
 from .nodes.image.image_metadata_io import (
     ImagesLoadWithMetadata,
+    ImagesLoadWithMetadataList,
     ImageLoadWithMetadata,
     ImageSaveWithMetadata
 )
@@ -61,6 +62,7 @@ from .nodes.production.image_watermark import ImageWatermark
 
 from .nodes.text.save_text_file import TextSaveToFile
 from .nodes.text.text_load_from_file import TextLoadFromFile
+from .nodes.text.text_load_from_file import TextLoadFromFileList
 from .nodes.text.text_load_from_directory import TextLoadFromDirectory
 from .nodes.text.text_keyword_checker import TextKeywordChecker
 from .nodes.text.text_find_replace import TextFindAndReplace
@@ -72,6 +74,12 @@ from .nodes.utils.current_date_time import CurrentDateTime
 from .nodes.utils.format_date_path import FormatDatePath
 from .nodes.utils.file_save_path import FileSavePath
 from .nodes.utils.get_file_name import FileNameExtractor
+from .nodes.utils.any_list_utils import (
+    AnyGetItem,
+    AnyListLength,
+    AnyListIndexer,
+    AnyListToBatch
+)
 
 from .nodes.llm.llama_cpp_text_generator import LlamaCppTextGenerator
 from .nodes.llm.llama_cpp_preset_loader import LlamaPresetLoader
@@ -92,6 +100,11 @@ NODE_CLASS_MAPPINGS = {
     "CalculateFrameCount": CalculateFrameCount,
     "CurrentDateTime": CurrentDateTime,
     "FileNameExtractor": FileNameExtractor,
+
+    "AnyGetItem": AnyGetItem,
+    "AnyListLength": AnyListLength,
+    "AnyListIndexer": AnyListIndexer,
+    "AnyListToBatch": AnyListToBatch,
 
     "JsonFieldValueExtractor": JsonFieldValueExtractor,
     "JsonFieldRemover": JsonFieldRemover,
@@ -117,6 +130,7 @@ NODE_CLASS_MAPPINGS = {
     "ImageResolutionCalculator": ImageResolutionCalculator,
 
     "ImagesLoadWithMetadata": ImagesLoadWithMetadata,
+    "ImagesLoadWithMetadataList": ImagesLoadWithMetadataList,
     "ImageLoadWithMetadata": ImageLoadWithMetadata,
     "ImageSaveWithMetadata": ImageSaveWithMetadata,
 
@@ -125,6 +139,7 @@ NODE_CLASS_MAPPINGS = {
 
     "TextSaveToFile": TextSaveToFile,
     "TextLoadFromFile": TextLoadFromFile,
+    "TextLoadFromFileList": TextLoadFromFileList,
     "TextLoadFromDirectory": TextLoadFromDirectory,
     "TextKeywordChecker": TextKeywordChecker,
     "TextFindAndReplace": TextFindAndReplace,
@@ -159,6 +174,11 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CurrentDateTime": "CurrentDateTime",
     "FileNameExtractor": "FileNameExtractor",
 
+    "AnyGetItem": "Any GetItem",
+    "AnyListLength": "Any ListLength",
+    "AnyListIndexer": "Any ListIndexer",
+    "AnyListToBatch": "Any ListToBatch",
+
     "JsonFieldValueExtractor": "JSON FieldValueExtractor",
     "JsonFieldRemover": "JSON FieldRemover",
     "JsonFieldReplaceExtend": "JSON FieldReplaceExtend",
@@ -183,6 +203,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ImageResolutionCalculator": "Image ResolutionCalculator",
 
     "ImagesLoadWithMetadata": "Images LoadWithMetadata",
+    "ImagesLoadWithMetadataList": "Images LoadWithMetadata (List)",
     "ImageLoadWithMetadata": "Image LoadWithMetadata",
     "ImageSaveWithMetadata": "Image SaveWithMetadata",
 
@@ -191,6 +212,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
     "TextSaveToFile": "Text SaveToFile",
     "TextLoadFromFile": "Text LoadFromFile",
+    "TextLoadFromFileList": "Text LoadFromFile (List)",
     "TextLoadFromDirectory": "Text LoadFromDirectory",
     "TextKeywordChecker": "Text KeywordChecker",
     "TextFindAndReplace": "Text FindAndReplace",

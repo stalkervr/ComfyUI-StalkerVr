@@ -15,7 +15,7 @@
 - **Config Manager & Constants**: Secure split-config system (`secrets.yaml` + `config.yaml`), centralized path registration, and shared category prefixes.
 - **Custom Types Module**: Extracted `Everything` wildcard type for reusable cross-node compatibility.
 
-### 🧩 Added - JSON Utilities
+###  Added - JSON Utilities
 - **Json Builder**: Dynamic key-value construction with nested dot-notation support and JS-driven dynamic inputs.
 - **Json Pair Input**: Smart input node with automatic type detection (JSON/Bool/Num/String) and wildcard passthrough.
 - **Json Path Loader**: Batch directory scanner with sorting, limiting, and forced fresh-scan execution (`IS_CHANGED=random`).
@@ -26,7 +26,7 @@
 - **Json Field Replace Extend**: Dynamic field updates with smart casting, dot/array navigation, and optional value concatenation.
 - **Json Prompt To Text Prompt**: Recursive flattener that converts JSON structures into clean, punctuated text prompts with newline toggling.
 
-### 🔤 Added - String & Text Utilities
+###  Added - String & Text Utilities
 - **String Builder**: Dynamic text concatenation with configurable separators, newline injection, and JS-driven input scaling.
 - **String Wrapper**: Prefix/suffix wrapping with intelligent whitespace handling and empty-segment filtering.
 - **String Normalize**: Universal whitespace normalizer that collapses line breaks and multiple spaces into single delimiters.
@@ -64,7 +64,13 @@
 
 ### 🤖 Added - LLM & Vision-Language Utilities
 - **LlamaCppTextGenerator**: Local GGUF-based vision-language text generator with auto-handler detection 
-- (Qwen3-VL, Qwen3.5 LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, `       <think>` tag stripping, GPU layer offloading, and structured performance logging.
+- (Qwen3-VL, Qwen3.5 LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, `        <think>` tag stripping, GPU layer offloading, and structured performance logging.
+
+###  Added - List & Batch Utilities
+- **Any List Length**: Returns the total count of items in any list object passed via Wildcard. Works with strings, images, latents, or mixed types without type conversion.
+- **Any Get Item**: Retrieves a specific element from a list by index without type conversion. Returns `None` if out of bounds to maintain compatibility with non-string types.
+- **Any List Indexer**: Splits a list into two parallel outputs: original items (preserving native types) and their corresponding integer indices `[0, 1, 2...]`.
+- **Any List To Batch**: Converts a list object received via Wildcard into a ComfyUI batch output (`OUTPUT_IS_LIST`). Triggers automatic unpacking so downstream nodes process each item individually.
 
 ### 📝 Documentation & Refactoring
 - Complete `README.md` overhaul with installation, API key setup, and per-node specifications in standardized Markdown format.
