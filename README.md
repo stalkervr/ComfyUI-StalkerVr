@@ -1111,6 +1111,78 @@ Scans a directory for text files and loads their content. Offers two modes: read
 
 ---
 
+### 🔹 Text Find And Replace
+Advanced text substitution tool that supports both simple string replacement and powerful Regular Expressions. Allows for batch processing of multiple find/replace pairs using a pipe (`|`) separator.
+
+#### ✨ Key Features
+- **Batch Replacement:** Process multiple find/replace pairs in a single pass by separating terms with `|`.
+- **Regex Support:** Enable Regular Expressions for complex pattern matching (e.g., removing specific formats, finding word boundaries).
+- **Case Control:** Toggle case-sensitive matching to ensure precise replacements or broad updates.
+- **Smart Mapping:** Automatically maps find terms to replace terms; if fewer replacements are provided, extra matches are removed (replaced with empty string).
+- **Error Resilience:** Gracefully handles invalid Regex patterns by skipping them and logging the error without breaking the workflow.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `text` | STRING | The source text to process. |
+| `find_text` | STRING | Text or phrase to find. |
+| `replace_text` | STRING | Text to replace with. |
+| `use_regex` | BOOLEAN | Treat `find_text` as Regular Expressions (Default: `False`). |
+| `case_sensitive` | BOOLEAN | Enable case-sensitive matching (Default: `False`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `result_text` | STRING | The modified text after all replacements have been applied. |
+
+### 🔹 Text Keyword Checker
+Scans input text for the presence of specific keywords or phrases. Returns a boolean flag indicating if any match was found, while passing the original text through unchanged for seamless workflow integration.
+
+#### ✨ Key Features
+- **Multi-Keyword Support:** Check for multiple terms simultaneously by separating them with a pipe (`|`) character.
+- **Case Control:** Toggle case-sensitive matching to find exact capitalization or ignore it for broader detection.
+- **Non-Destructive:** Outputs the original text unmodified, allowing it to be used in downstream nodes regardless of the check result.
+- **Conditional Routing:** Ideal for use with `Switch Any` or conditional logic to filter out unwanted content (e.g., NSFW tags, errors) or trigger specific actions.
+- **Detailed Logging:** Logs which keyword was matched (if any) for debugging and tracking.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `text` | STRING | The source text to scan. |
+| `keywords` | STRING | List of keywords or phrases to search for |
+| `case_sensitive` | BOOLEAN | Enable case-sensitive matching (Default: `False`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `text_passthrough` | STRING | The original input text, unchanged. |
+| `is_found` | BOOLEAN | `True` if any keyword was found, `False` otherwise. |
+
+### 🔹 Text Wrapper Batch
+Applies a common prefix and suffix to every string in a batch. Ideal for adding system instructions, negative prompts, or consistent formatting to lists of generated texts without manual concatenation.
+
+#### ✨ Key Features
+- **Batch Processing:** Automatically handles lists of strings (`OUTPUT_IS_LIST`), applying changes to each element individually.
+- **Flexible Wrapping:** Add text before (prefix) and/or after (suffix) each entry.
+- **Custom Separators:** Define the delimiter between the wrapper and the main text (default is a space).
+- **Smart Cleaning:** Automatically trims whitespace from inputs and skips empty segments to prevent double-spacing.
+- **Universal Input:** Accepts both single strings and lists, making it compatible with most text-generation nodes.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `prefix` | STRING | Text to add before each string (e.g., "Masterpiece, best quality,"). |
+| `strings` | STRING | List of strings to wrap. Accepts output from nodes returning `LIST[STRING]`. |
+| `suffix` | STRING | Text to add after each string (e.g., ", high resolution"). |
+| `separator` | STRING | Delimiter inserted between prefix, text, and suffix (Default: `" "`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `wrapped_strings` | STRING | List of strings with applied prefix and suffix. |
+
+---
+
 ---
 
 ### 🔹 YAML Save Prompt

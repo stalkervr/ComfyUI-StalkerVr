@@ -30,21 +30,27 @@
 - **String Builder**: Dynamic text concatenation with configurable separators, newline injection, and JS-driven input scaling.
 - **String Wrapper**: Prefix/suffix wrapping with intelligent whitespace handling and empty-segment filtering.
 - **String Normalize**: Universal whitespace normalizer that collapses line breaks and multiple spaces into single delimiters.
+- **Text SaveToFile**: Structured text saver with project-based paths, optional date folders, and dual write modes (unique numbered files or single-file append with custom separators).
+- **Text LoadFromFile**: Reads text from a single file with support for splitting content into a list of strings via custom separators.
+- **Text LoadFromDirectory**: Scans a folder for text files and loads content either as a per-file list or a flat merged list of all entries.
+- **Text Find And Replace**: Advanced substitution tool supporting batch replacements via pipe separator and Regular Expressions.
+- **Text Keyword Checker**: Scans text for specific keywords/phrases and returns a boolean flag for conditional workflow routing.
+- **Text Wrapper Batch**: Applies common prefix and suffix to every string in a batch, ideal for formatting prompt lists.
 
 ### 🖼️ Added - Image Utilities
 - **Image Grid Cropper**: Splits images into fixed-size grids with automatic edge padding, native batch processing, and optional sequential disk export.
 - **Image Crop**: Margin-based cropping with optional bilinear size restoration and `[B, H, W, C]` batch support.
 - **Image Ratio Resizer**: Aspect-ratio enforcement using cover-mode center cropping, auto-orientation detection, and preset/custom ratios.
-- **Image Get Size**: Zero-overhead dimension extractor returning width, height, and configurable min/max resolution for dynamic routing.
+- **Image Get Size**: Zero-overhead dimension extractor with optional image input, returning width, height, resolution, and the original image for chaining.
 - **Image Desired Resolution**: WAN/BiRefNet-optimized resizer with 16-pixel alignment, aspect-ratio preservation, and dimension-only fallback mode.
-- **Images Load With Metadata**: Batch directory loader with universal format support, EXIF/PNG metadata extraction, alpha mask generation, and smart type conversion.
-- **Image Load With Metadata**: Single-image loader with JS-driven global metadata cache that survives ComfyUI mask editor resets and clipspace temp files.
-- **Image Save With Metadata**: High-reliability PNG archiver with embedded JSON metadata, workflow preservation, sequential numbering, and caption export.
+- **Images Load With Metadata**: Batch directory loader with universal format support, EXIF/PNG metadata extraction, alpha mask generation, smart type conversion, and configurable image count limit.
+- **Image Load With Metadata**: Single-image loader with direct file metadata extraction ensuring data accuracy on every execution.
+- **Image Save With Metadata**: High-reliability PNG archiver with embedded JSON metadata, workflow preservation, sequential numbering, caption export toggle, and compression control.
+- **Image Resolution Calculator**: Calculates optimal dimensions from megapixels and aspect ratio with pixel alignment; now includes a raw `aspect_ratio` string output for downstream chaining.
 
 ### 📁 Added - IO & File Management Utilities
 - **FormatDatePath**: Real-time path generator with custom `%date:FORMAT%` token parsing and forced workflow re-execution for dynamic timestamping.
-- **FileSavePath**: Hierarchical path builder that auto-assembles `{root}/{project}/{type}/{date}/` structures for organized, date-partitioned output routing.
-- **SaveTextFile**: Smart file saver with dynamic date placeholders, collision-safe sequential numbering, automatic extension management, and empty-input bypass.
+- **FileSavePath**: Hierarchical path builder with optional date partitioning toggle. Assembles `{root}/{project}/{type}/` and appends `{YYYY-MM-DD}` only if enabled.
 
 ### 📜 Added - YAML Prompt Utilities
 - **YAML Save Prompt**: Saves positive/negative prompts to a hierarchical YAML database with person/type/group/sub-group nesting, toggle-controlled writing, whitespace normalization, and corruption-safe fallback.
@@ -58,10 +64,12 @@
 
 ### 🤖 Added - LLM & Vision-Language Utilities
 - **LlamaCppTextGenerator**: Local GGUF-based vision-language text generator with auto-handler detection 
-- (Qwen3-VL, Qwen3.5 LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, `<think>` tag stripping, GPU layer offloading, and structured performance logging.
+- (Qwen3-VL, Qwen3.5 LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, `       <think>` tag stripping, GPU layer offloading, and structured performance logging.
 
 ### 📝 Documentation & Refactoring
 - Complete `README.md` overhaul with installation, API key setup, and per-node specifications in standardized Markdown format.
 - **Centralized Logging**: Replaced all `print()` statements with `LogEntry` across the entire node suite.
 - **Type Safety & Fallbacks**: Added explicit type hints, safe parsing wrappers, and graceful degradation for all converters.
+- **Metadata Cache Removal**: Removed global metadata caching from `ImageLoadWithMetadata` to ensure data consistency; now reads directly from file on every execution.
+- **Node Optimizations**: Removed unnecessary preview outputs from calculation nodes and added chaining-friendly string outputs where applicable.
 - All nodes now follow consistent architecture patterns, dynamic input handling, and ComfyUI best practices.

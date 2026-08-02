@@ -37,7 +37,6 @@ from .nodes.json.json_pair_input import JsonPairInput
 from .nodes.string.string_builder import StringBuilder
 from .nodes.string.string_wrapper import StringWrapper
 from .nodes.string.string_normalize import StringNormalize
-from .nodes.string.string_wrapper_batch import StringWrapperBatch
 
 from .nodes.image.image_grid_cropper import ImageGridCropper
 from .nodes.image.image_crop import ImageCropper
@@ -63,6 +62,9 @@ from .nodes.production.image_watermark import ImageWatermark
 from .nodes.text.save_text_file import TextSaveToFile
 from .nodes.text.text_load_from_file import TextLoadFromFile
 from .nodes.text.text_load_from_directory import TextLoadFromDirectory
+from .nodes.text.text_keyword_checker import TextKeywordChecker
+from .nodes.text.text_find_replace import TextFindAndReplace
+from .nodes.text.text_wrapper_batch import TextWrapperBatch
 
 from .nodes.utils.logger import Logger
 from .nodes.utils.switch_any import SwitchAny
@@ -70,8 +72,6 @@ from .nodes.utils.current_date_time import CurrentDateTime
 from .nodes.utils.format_date_path import FormatDatePath
 from .nodes.utils.file_save_path import FileSavePath
 from .nodes.utils.get_file_name import FileNameExtractor
-from .nodes.utils.text_keyword_checker import TextKeywordChecker
-from .nodes.utils.text_find_replace import TextFindAndReplace
 
 from .nodes.llm.llama_cpp_text_generator import LlamaCppTextGenerator
 from .nodes.llm.llama_cpp_preset_loader import LlamaPresetLoader
@@ -92,8 +92,6 @@ NODE_CLASS_MAPPINGS = {
     "CalculateFrameCount": CalculateFrameCount,
     "CurrentDateTime": CurrentDateTime,
     "FileNameExtractor": FileNameExtractor,
-    "TextKeywordChecker": TextKeywordChecker,
-    "TextFindAndReplace": TextFindAndReplace,
 
     "JsonFieldValueExtractor": JsonFieldValueExtractor,
     "JsonFieldRemover": JsonFieldRemover,
@@ -110,7 +108,6 @@ NODE_CLASS_MAPPINGS = {
     "StringBuilder": StringBuilder,
     "StringWrapper": StringWrapper,
     "StringNormalize": StringNormalize,
-    "StringWrapperBatch": StringWrapperBatch,
 
     "ImageGridCropper": ImageGridCropper,
     "ImageCropper": ImageCropper,
@@ -129,6 +126,9 @@ NODE_CLASS_MAPPINGS = {
     "TextSaveToFile": TextSaveToFile,
     "TextLoadFromFile": TextLoadFromFile,
     "TextLoadFromDirectory": TextLoadFromDirectory,
+    "TextKeywordChecker": TextKeywordChecker,
+    "TextFindAndReplace": TextFindAndReplace,
+    "TextWrapperBatch": TextWrapperBatch,
 
     "YAMLSavePrompt": YAMLSavePrompt,
     "YAMLLoadPrompt": YAMLLoadPrompt,
@@ -158,8 +158,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CalculateFrameCount": "CalculateFrameCount",
     "CurrentDateTime": "CurrentDateTime",
     "FileNameExtractor": "FileNameExtractor",
-    "TextKeywordChecker": "TextKeywordChecker",
-    "TextFindAndReplace": "TextFindAndReplace",
 
     "JsonFieldValueExtractor": "JSON FieldValueExtractor",
     "JsonFieldRemover": "JSON FieldRemover",
@@ -176,7 +174,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "StringBuilder": "String Builder",
     "StringWrapper": "String Wrapper",
     "StringNormalize": "String Normalize",
-    "StringWrapperBatch": "String WrapperBatch",
 
     "ImageGridCropper": "Image GridCropper",
     "ImageCropper": "Image Cropper",
@@ -195,6 +192,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "TextSaveToFile": "Text SaveToFile",
     "TextLoadFromFile": "Text LoadFromFile",
     "TextLoadFromDirectory": "Text LoadFromDirectory",
+    "TextKeywordChecker": "Text KeywordChecker",
+    "TextFindAndReplace": "Text FindAndReplace",
+    "TextWrapperBatch": "Text WrapperBatch",
 
     "YAMLSavePrompt": "YAML SavePrompt",
     "YAMLLoadPrompt": "YAML LoadPrompt",
