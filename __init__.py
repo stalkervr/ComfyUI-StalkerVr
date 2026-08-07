@@ -11,8 +11,10 @@ Built with modularity in mind, it serves as a scalable foundation for efficient 
 WEB_DIRECTORY = os.path.join(os.path.dirname(__file__), "web")
 
 from .nodes.lora.lora_loader import (
-    LoraLoaderExtended,
-    LoraLoaderExtendedBatch
+    LoraSelect,
+    LoraApply,
+    LoraSelectBatch,
+    LoraApplyModelOnly
 )
 
 from .nodes.wan_video.wan_video_lora_civitai_downloader import WanVideoLoraCivitAIDownloader
@@ -44,7 +46,6 @@ from .nodes.image.image_ratio_resizer import ImageRatioResizer
 from .nodes.image.image_get_size import ImageGetSize
 from .nodes.image.image_desired_resolution import ImageDesiredResolution
 from .nodes.image.image_resolution_calculator import ImageResolutionCalculator
-
 from .nodes.image.image_metadata_io import (
     ImagesLoadWithMetadata,
     ImagesLoadWithMetadataList,
@@ -61,9 +62,14 @@ from .nodes.production.text_watermark import TextWatermark
 from .nodes.production.image_watermark import ImageWatermark
 
 from .nodes.text.save_text_file import TextSaveToFile
-from .nodes.text.text_load_from_file import TextLoadFromFile
-from .nodes.text.text_load_from_file import TextLoadFromFileList
-from .nodes.text.text_load_from_directory import TextLoadFromDirectory
+from .nodes.text.text_load_from_file import (
+    TextLoadFromFile,
+    TextLoadFromFileList
+)
+from .nodes.text.text_load_from_directory import (
+    TextLoadFromDirectory,
+    TextLoadFromDirectoryList
+)
 from .nodes.text.text_keyword_checker import TextKeywordChecker
 from .nodes.text.text_find_replace import TextFindAndReplace
 from .nodes.text.text_wrapper_batch import TextWrapperBatch
@@ -92,8 +98,10 @@ NODE_CLASS_MAPPINGS = {
     "WanVideoEnhanceMotionAdvanced": WanVideoEnhanceMotionAdvanced,
     "WanVideoLoraPairSelect": WanVideoLoraPairSelect,
 
-    "LoraLoaderExtended": LoraLoaderExtended,
-    "LoraLoaderExtendedBatch": LoraLoaderExtendedBatch,
+    "LoraSelect": LoraSelect,
+    "LoraApply": LoraApply,
+    "LoraSelectBatch": LoraSelectBatch,
+    "LoraApplyModelOnly": LoraApplyModelOnly,
 
     "Logger": Logger,
     "SwitchAny": SwitchAny,
@@ -141,6 +149,7 @@ NODE_CLASS_MAPPINGS = {
     "TextLoadFromFile": TextLoadFromFile,
     "TextLoadFromFileList": TextLoadFromFileList,
     "TextLoadFromDirectory": TextLoadFromDirectory,
+    "TextLoadFromDirectoryList": TextLoadFromDirectoryList,
     "TextKeywordChecker": TextKeywordChecker,
     "TextFindAndReplace": TextFindAndReplace,
     "TextWrapperBatch": TextWrapperBatch,
@@ -165,8 +174,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WanVideoEnhanceMotionAdvanced": "WanVideo EnhanceMotionAdvanced",
     "WanVideoLoraPairSelect": "WanVideo LoraPairSelect",
 
-    "LoraLoaderExtended": "LoRA Loader Extended",
-    "LoraLoaderExtendedBatch": "LoRA Loader Extended (Batch)",
+    "LoraSelect": "LoRA Select",
+    "LoraApply": "LoRA Apply",
+    "LoraSelectBatch": "LoRA Select Batch",
+    "LoraApplyModelOnly": "LoRA Apply Model Only",
 
     "Logger": "Logger",
     "SwitchAny": "SwitchAny",
@@ -214,6 +225,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "TextLoadFromFile": "Text LoadFromFile",
     "TextLoadFromFileList": "Text LoadFromFile (List)",
     "TextLoadFromDirectory": "Text LoadFromDirectory",
+    "TextLoadFromDirectoryList": "Text LoadFromDirectory (List)",
     "TextKeywordChecker": "Text KeywordChecker",
     "TextFindAndReplace": "Text FindAndReplace",
     "TextWrapperBatch": "Text WrapperBatch",

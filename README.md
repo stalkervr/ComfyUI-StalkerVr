@@ -300,6 +300,58 @@ Process up to 5 LoRAs in a single node. Ideal for complex workflows requiring mu
 
 ---
 
+### 🔹 Lora Select
+Selects a LoRA file and packs it with its strength parameter into a container object. Supports chaining via `prev_lora` input to build complex sequences of adapters without modifying the base model yet. Returns both the container and a formatted name string for metadata tracking.
+
+#### ✨ Key Features
+- **Container-Based Workflow:** Separates LoRA selection from application, allowing reuse of loaded adapters across different models.
+- **Chainable Architecture:** Connect multiple instances via `prev_lora` to build ordered stacks of LoRAs with individual strengths.
+- **Auto-Formatted Names:** Generates a ready-to-use name string (e.g., `style.safetensors | 1.00`) for embedding in outputs or logs.
+- **Smart Caching:** Loads each LoRA file only once per session, even when used in multiple chains.
+- **Safe Bypass:** Returns empty container/string if disabled or set to "None", preserving chain integrity.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `prev_lora` | LORA_CONTAINER | Previous LoRA chain to extend. Leave empty to start a new chain. |
+| `lora_name` | COMBO | LoRA filename to load. Select "None" to skip this node. |
+| `strength_model` | FLOAT | Strength value for the LoRA (Default: `1.0`). |
+| `enable_lora` | BOOLEAN | Toggle to activate/deactivate this LoRA in the chain (Default: `True`). |
+| `prev_name_string` | STRING | Accumulated name string from previous nodes in the chain. |
+
+####  Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `lora` | LORA_CONTAINER | Packed list of LoRA data + parameters, ready for `LoraApply`. |
+| `name_string` | STRING | Formatted string of all selected LoRAs with their strengths. |
+
+---
+
+### 🔹 Lora Apply
+Applies a chain of pre-configured LoRA containers to a Model/CLIP pair. Pure technical node that handles weight injection without managing names or metadata. Uses internal base-model caching to prevent duplicate application when parameters change.
+
+#### ✨ Key Features
+- **Clean Application:** Always applies the full container to the original base model, preventing accidental double-patching.
+- **Zero Metadata Overhead:** Focuses solely on tensor operations; name handling is delegated to `LoraSelect`.
+- **Optional Wiring:** Works without explicit model/clip inputs by remembering the last connected base model.
+- **Error Resilience:** Falls back to unpatched model if application fails, keeping the workflow alive.
+- **Batch-Safe:** Designed for dynamic workflows where LoRA configurations change between generations.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `model` | MODEL | Base model to patch. Optional if previously cached. |
+| `clip` | CLIP | Base CLIP to patch. Optional if previously cached. |
+| `lora` | LORA_CONTAINER | Pre-packed LoRA chain from one or more `LoraSelect` nodes. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `MODEL` | MODEL | Model with all LoRAs from the container applied. |
+| `CLIP` | CLIP | CLIP with all LoRAs from the container applied. |
+
+---
+
 ---
 
 ### 🔹 Current Date Time

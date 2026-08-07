@@ -40,7 +40,7 @@ class TextFindAndReplace:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("result_text",)
     FUNCTION = "replace"
-    CATEGORY = f"{CATEGORY_PREFIX}/Utils"
+    CATEGORY = f"{CATEGORY_PREFIX}/Text"
     DESCRIPTION = """
     Finds and replaces specific words or phrases in the input text.
     Supports single replacement or multiple replacements using a separator.

@@ -15,7 +15,7 @@
 - **Config Manager & Constants**: Secure split-config system (`secrets.yaml` + `config.yaml`), centralized path registration, and shared category prefixes.
 - **Custom Types Module**: Extracted `Everything` wildcard type for reusable cross-node compatibility.
 
-###  Added - JSON Utilities
+### 🧩 Added - JSON Utilities
 - **Json Builder**: Dynamic key-value construction with nested dot-notation support and JS-driven dynamic inputs.
 - **Json Pair Input**: Smart input node with automatic type detection (JSON/Bool/Num/String) and wildcard passthrough.
 - **Json Path Loader**: Batch directory scanner with sorting, limiting, and forced fresh-scan execution (`IS_CHANGED=random`).
@@ -26,7 +26,7 @@
 - **Json Field Replace Extend**: Dynamic field updates with smart casting, dot/array navigation, and optional value concatenation.
 - **Json Prompt To Text Prompt**: Recursive flattener that converts JSON structures into clean, punctuated text prompts with newline toggling.
 
-###  Added - String & Text Utilities
+### 🔤 Added - String & Text Utilities
 - **String Builder**: Dynamic text concatenation with configurable separators, newline injection, and JS-driven input scaling.
 - **String Wrapper**: Prefix/suffix wrapping with intelligent whitespace handling and empty-segment filtering.
 - **String Normalize**: Universal whitespace normalizer that collapses line breaks and multiple spaces into single delimiters.
@@ -48,9 +48,13 @@
 - **Image Save With Metadata**: High-reliability PNG archiver with embedded JSON metadata, workflow preservation, sequential numbering, caption export toggle, and compression control.
 - **Image Resolution Calculator**: Calculates optimal dimensions from megapixels and aspect ratio with pixel alignment; now includes a raw `aspect_ratio` string output for downstream chaining.
 
-### 📁 Added - IO & File Management Utilities
+###  Added - IO & File Management Utilities
 - **FormatDatePath**: Real-time path generator with custom `%date:FORMAT%` token parsing and forced workflow re-execution for dynamic timestamping.
 - **FileSavePath**: Hierarchical path builder with optional date partitioning toggle. Assembles `{root}/{project}/{type}/` and appends `{YYYY-MM-DD}` only if enabled.
+
+###  Added - LoRA Management Utilities
+- **Lora Select**: Container-based LoRA selector that packs file data and strength parameters without modifying models. Supports chainable architecture via `prev_lora` input and auto-generates formatted name strings for metadata tracking.
+- **Lora Apply**: Pure technical applier that injects pre-configured LoRA containers into Model/CLIP pairs. Uses base-model caching to prevent duplicate application and operates independently of metadata/name-string logic.
 
 ### 📜 Added - YAML Prompt Utilities
 - **YAML Save Prompt**: Saves positive/negative prompts to a hierarchical YAML database with person/type/group/sub-group nesting, toggle-controlled writing, whitespace normalization, and corruption-safe fallback.
@@ -64,7 +68,7 @@
 
 ### 🤖 Added - LLM & Vision-Language Utilities
 - **LlamaCppTextGenerator**: Local GGUF-based vision-language text generator with auto-handler detection 
-- (Qwen3-VL, Qwen3.5 LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, `        <think>` tag stripping, GPU layer offloading, and structured performance logging.
+- (Qwen3-VL, Qwen3.5 LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, `         <think>` tag stripping, GPU layer offloading, and structured performance logging.
 
 ###  Added - List & Batch Utilities
 - **Any List Length**: Returns the total count of items in any list object passed via Wildcard. Works with strings, images, latents, or mixed types without type conversion.
@@ -72,7 +76,7 @@
 - **Any List Indexer**: Splits a list into two parallel outputs: original items (preserving native types) and their corresponding integer indices `[0, 1, 2...]`.
 - **Any List To Batch**: Converts a list object received via Wildcard into a ComfyUI batch output (`OUTPUT_IS_LIST`). Triggers automatic unpacking so downstream nodes process each item individually.
 
-### 📝 Documentation & Refactoring
+###  Documentation & Refactoring
 - Complete `README.md` overhaul with installation, API key setup, and per-node specifications in standardized Markdown format.
 - **Centralized Logging**: Replaced all `print()` statements with `LogEntry` across the entire node suite.
 - **Type Safety & Fallbacks**: Added explicit type hints, safe parsing wrappers, and graceful degradation for all converters.
