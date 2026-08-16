@@ -11,11 +11,19 @@ class LogEntry:
         self.footer = footer
 
 
-def log(entry: LogEntry):
+def _is_enabled(node_class: str) -> bool:
+    """
+    Whitelist-проверка логирования.
+    Лог выводится ТОЛЬКО если класс явно включен в конфигурации:
+        logging.node_class.<ClassName>: true
+    Если значение false или класс отсутствует — лог подавляется.
+    """
     config = ConfigManager()
-    if not config.get("logging.global_enabled", True):
-        return
-    if not config.get(f"logging.node_settings.{entry.node_class}", True):
+    return bool(config.get(f"logging.node_class.{node_class}", False))
+
+
+def log(entry: LogEntry):
+    if not _is_enabled(entry.node_class):
         return
 
     print(f"🎯 [{entry.node_class}] {entry.title}")
@@ -27,10 +35,7 @@ def log(entry: LogEntry):
 
 
 def log_end(entry: LogEntry):
-    config = ConfigManager()
-    if not config.get("logging.global_enabled", True):
-        return
-    if not config.get(f"logging.node_settings.{entry.node_class}", True):
+    if not _is_enabled(entry.node_class):
         return
 
     for key, value in entry.details.items():
@@ -41,10 +46,7 @@ def log_end(entry: LogEntry):
 
 
 def log_start(entry: LogEntry):
-    config = ConfigManager()
-    if not config.get("logging.global_enabled", True):
-        return
-    if not config.get(f"logging.node_settings.{entry.node_class}", True):
+    if not _is_enabled(entry.node_class):
         return
 
     print()

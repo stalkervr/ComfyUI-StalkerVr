@@ -23,7 +23,7 @@
 - **Json Format / Minify**: Pretty-printing and compacting tools with configurable ASCII escaping, key sorting, and error fallback modes.
 - **Json Field Value Extractor**: Precise value retrieval using dot notation with strict type preservation.
 - **Json Field Remover**: Safe deletion of multiple fields by pipe-separated paths with graceful missing-key handling.
-- **Json Field Replace Extend**: Dynamic field updates with smart casting, dot/array navigation, and optional value concatenation.
+- **Json Field Replace Extend**: Dynamic field updates with smart casting, dot/array navigation, and optional value concatenation. Now accepts any data type via Wildcard input (strings, lists, dicts, numbers, booleans, null) with smart list concatenation in extend mode.
 - **Json Prompt To Text Prompt**: Recursive flattener that converts JSON structures into clean, punctuated text prompts with newline toggling.
 
 ### 🔤 Added - String & Text Utilities
@@ -34,7 +34,7 @@
 - **Text LoadFromFile**: Reads text from a single file with support for splitting content into a list of strings via custom separators.
 - **Text LoadFromDirectory**: Scans a folder for text files and loads content either as a per-file list or a flat merged list of all entries.
 - **Text Find And Replace**: Advanced substitution tool supporting batch replacements via pipe separator and Regular Expressions.
-- **Text Keyword Checker**: Scans text for specific keywords/phrases and returns a boolean flag for conditional workflow routing.
+- **Text Keyword Checker**: Scans text for specific keywords/phrases and returns a boolean flag for conditional workflow routing. Empty text is now treated as a valid input (returns `False`) instead of skipping execution.
 - **Text Wrapper Batch**: Applies common prefix and suffix to every string in a batch, ideal for formatting prompt lists.
 
 ### 🖼️ Added - Image Utilities
@@ -46,15 +46,17 @@
 - **Images Load With Metadata**: Batch directory loader with universal format support, EXIF/PNG metadata extraction, alpha mask generation, smart type conversion, and configurable image count limit.
 - **Image Load With Metadata**: Single-image loader with direct file metadata extraction ensuring data accuracy on every execution.
 - **Image Save With Metadata**: High-reliability PNG archiver with embedded JSON metadata, workflow preservation, sequential numbering, caption export toggle, and compression control.
-- **Image Resolution Calculator**: Calculates optimal dimensions from megapixels and aspect ratio with pixel alignment; now includes a raw `aspect_ratio` string output for downstream chaining.
+- **Image Resolution Calculator**: Calculates optimal dimensions from megapixels and aspect ratio with pixel alignment; includes a raw `aspect_ratio` string output and a new `prev_aspect_ratio` input for chaining multiple calculators with priority: `custom_ratio` → `prev_aspect_ratio` → `preset`.
 
 ###  Added - IO & File Management Utilities
 - **FormatDatePath**: Real-time path generator with custom `%date:FORMAT%` token parsing and forced workflow re-execution for dynamic timestamping.
 - **FileSavePath**: Hierarchical path builder with optional date partitioning toggle. Assembles `{root}/{project}/{type}/` and appends `{YYYY-MM-DD}` only if enabled.
 
 ###  Added - LoRA Management Utilities
-- **Lora Select**: Container-based LoRA selector that packs file data and strength parameters without modifying models. Supports chainable architecture via `prev_lora` input and auto-generates formatted name strings for metadata tracking.
-- **Lora Apply**: Pure technical applier that injects pre-configured LoRA containers into Model/CLIP pairs. Uses base-model caching to prevent duplicate application and operates independently of metadata/name-string logic.
+- **Lora Select**: Pure container-based LoRA selector that packs file data and strength parameters without modifying models. Supports chainable architecture via `prev_lora` input. Now focused solely on data packing — name strings and logging moved to apply nodes.
+- **Lora Select Batch**: Batch LoRA selector with 5 independent slots (name/strength/enable each). Merges all selected LoRAs into a single container chain, fully compatible with `LoraSelect` chaining.
+- **Lora Apply**: Pure technical applier that injects pre-configured LoRA containers into Model/CLIP pairs. Uses base-model caching to prevent duplicate application. Now features structured `log_start`/`log_end` reporting and a new `applied_loras` output (list of `name | strength` strings) for metadata tracking.
+- **Lora Apply Model Only**: New node that applies LoRA chains to MODEL only without touching CLIP. Ideal for workflows with separate text-encoder handling. Includes the same structured logging and `applied_loras` output.
 
 ### 📜 Added - YAML Prompt Utilities
 - **YAML Save Prompt**: Saves positive/negative prompts to a hierarchical YAML database with person/type/group/sub-group nesting, toggle-controlled writing, whitespace normalization, and corruption-safe fallback.
@@ -67,19 +69,12 @@
 - **Image Watermark**: Overlays image watermarks with multiple scaling modes (`percentage`, `fixed`, `fit_width`, `fit_height`), 9-point grid positioning, rotation, and opacity control. Supports external alpha masks and native batch processing.
 
 ### 🤖 Added - LLM & Vision-Language Utilities
-- **LlamaCppTextGenerator**: Local GGUF-based vision-language text generator with auto-handler detection 
-- (Qwen3-VL, Qwen3.5 LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, `         <think>` tag stripping, GPU layer offloading, and structured performance logging.
-
-###  Added - List & Batch Utilities
-- **Any List Length**: Returns the total count of items in any list object passed via Wildcard. Works with strings, images, latents, or mixed types without type conversion.
-- **Any Get Item**: Retrieves a specific element from a list by index without type conversion. Returns `None` if out of bounds to maintain compatibility with non-string types.
-- **Any List Indexer**: Splits a list into two parallel outputs: original items (preserving native types) and their corresponding integer indices `[0, 1, 2...]`.
-- **Any List To Batch**: Converts a list object received via Wildcard into a ComfyUI batch output (`OUTPUT_IS_LIST`). Triggers automatic unpacking so downstream nodes process each item individually.
-
-###  Documentation & Refactoring
-- Complete `README.md` overhaul with installation, API key setup, and per-node specifications in standardized Markdown format.
-- **Centralized Logging**: Replaced all `print()` statements with `LogEntry` across the entire node suite.
-- **Type Safety & Fallbacks**: Added explicit type hints, safe parsing wrappers, and graceful degradation for all converters.
-- **Metadata Cache Removal**: Removed global metadata caching from `ImageLoadWithMetadata` to ensure data consistency; now reads directly from file on every execution.
-- **Node Optimizations**: Removed unnecessary preview outputs from calculation nodes and added chaining-friendly string outputs where applicable.
-- All nodes now follow consistent architecture patterns, dynamic input handling, and ComfyUI best practices.
+- **LlamaCppTextGenerator**: Local GGUF-based vision-language text generator with full process isolation — each generation runs in a dedicated subprocess, protecting ComfyUI from C++ crashes (SIGABRT, CUDA errors). Features:
+  - Multi-directory model search via `llm.models_path` config (list of absolute/relative paths) with recursive scanning.
+  - Automatic mmproj (vision projector) detection from the main model's folder (priority: `mmproj` → `vision` → `clip`); mmproj files are hidden from the model dropdown.
+  - Multi-directory system prompt loading via `llm.system_prompts_path` config (list of absolute/relative paths) with recursive scanning and first-match priority.
+  - VRAM management via `kv_cache_type` (`f16`/`q8_0`/`q4_0`) and `flash_attn` to solve SWA-cache issues in Gemma and similar architectures.
+  - New `metadata` output: JSON structure `{instructions, request, response}` ready for embedding into image/video metadata.
+  - `used_handler` log line revealing the actual handler when `handler_type=auto`.
+  - Version-agnostic handler initialization (tries both `mmproj_path` and `clip_model_path` for old/new llama-cpp-python).
+  - Auto-handler detection (Qwen3-VL, Qwen3.5, Gemma4, LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, `

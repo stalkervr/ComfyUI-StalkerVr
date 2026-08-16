@@ -87,8 +87,9 @@ from .nodes.utils.any_list_utils import (
     AnyListToBatch
 )
 
-from .nodes.llm.llama_cpp_text_generator import LlamaCppTextGenerator
 from .nodes.llm.llama_cpp_preset_loader import LlamaPresetLoader
+from .nodes.llm.llama_cpp_text_generator import LlamaCppTextGenerator
+from .nodes.llm.llama_cpp_text_generator_v3 import LlamaCppTextGeneratorV3
 
 
 NODE_CLASS_MAPPINGS = {
@@ -162,8 +163,9 @@ NODE_CLASS_MAPPINGS = {
     "TextWatermark": TextWatermark,
     "ImageWatermark": ImageWatermark,
 
-    "LlamaCppTextGenerator": LlamaCppTextGenerator,
     "LlamaPresetLoader": LlamaPresetLoader,
+    "LlamaCppTextGenerator": LlamaCppTextGenerator,
+    "LlamaCppTextGeneratorV3": LlamaCppTextGeneratorV3,
 }
 
 
@@ -238,8 +240,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "TextWatermark": "TextWatermark",
     "ImageWatermark": "ImageWatermark",
 
-    "LlamaCppTextGenerator": "LlamaCppTextGenerator",
-    "LlamaPresetLoader": "LlamaPresetLoader",
+    "LlamaPresetLoader": "Llama PresetLoader",
+    "LlamaCppTextGenerator": "Llama CppTextGenerator",
+    "LlamaCppTextGeneratorV3": "Llama CppTextGeneratorV3",
 }
 
 

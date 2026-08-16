@@ -15,7 +15,7 @@ from ...common.constants import CATEGORY_PREFIX
 from ...common.logger import LogEntry, log, log_start, log_end
 
 
-class LlamaCppTextGenerator:
+class LlamaCppTextGeneratorV3:
 
     # ==================== ПУТИ МОДЕЛЕЙ (ИЗ КОНФИГУРАЦИИ) ====================
     @classmethod
@@ -129,6 +129,7 @@ class LlamaCppTextGenerator:
 
         rel_path = os.path.relpath(os.path.join(model_dir, best_file), base_dir)
         return rel_path.replace("\\", "/")
+
     # ==================== ПУТИ МОДЕЛЕЙ (ИЗ КОНФИГУРАЦИИ) ====================
 
     # ==================== СИСТЕМНЫЕ ПРОМПТЫ (ИЗ КОНФИГУРАЦИИ) ===============
@@ -220,7 +221,8 @@ class LlamaCppTextGenerator:
                 "model_path": (cls.get_gguf_models(), {
                     "tooltip": "Main model. The mmproj (vision) file is auto-detected from the same folder."}),
                 "enable_thinking": ("BOOLEAN", {"default": False}),
-                "handler_type": (["auto", "qwen35", "qwen3vl", "gemma4", "llava15", "llava16", "minicpmv26"], {"default": "auto"}),
+                "handler_type": (
+                ["auto", "qwen35", "qwen3vl", "gemma4", "llava15", "llava16", "minicpmv26"], {"default": "auto"}),
                 "max_tokens": ("INT", {"default": 8192, "min": 32, "max": 16384, "step": 32}),
                 "context_length": ("INT", {"default": 32768, "min": 512, "max": 65536, "step": 32,
                                            "tooltip": "Lower this if you experience crashes with partial GPU layers."}),
@@ -306,7 +308,7 @@ class LlamaCppTextGenerator:
                 handler_type = self.detect_handler(model_path)
 
             log_start(LogEntry(
-                node_class="LlamaCppTextGenerator",
+                node_class="LlamaCppTextGeneratorV3",
                 title="START",
                 details={
                     "model": model_path,
@@ -340,7 +342,7 @@ class LlamaCppTextGenerator:
             # Если есть изображение, но mmproj не найден - предупреждаем
             if image_path and not mmproj_path:
                 log(LogEntry(
-                    node_class="LlamaCppTextGenerator",
+                    node_class="LlamaCppTextGeneratorV3",
                     title="Warning",
                     details={"Reason": "Image provided but no mmproj found in model folder. Image will be ignored."}
                 ))
@@ -399,7 +401,8 @@ class LlamaCppTextGenerator:
             env['COMFYUI_PATH'] = comfyui_root
             env['VENV_LIB_PATH'] = venv_lib
             pythonpath = env.get('PYTHONPATH', '')
-            env['PYTHONPATH'] = f"{comfyui_root}:{venv_lib}:{pythonpath}" if pythonpath else f"{comfyui_root}:{venv_lib}"
+            env[
+                'PYTHONPATH'] = f"{comfyui_root}:{venv_lib}:{pythonpath}" if pythonpath else f"{comfyui_root}:{venv_lib}"
 
             result = subprocess.run(
                 [python_executable, worker_script, payload_path],
@@ -416,7 +419,7 @@ class LlamaCppTextGenerator:
                 clean_error = '\n'.join(error_lines) if error_lines else "Unknown error"
 
                 log(LogEntry(
-                    node_class="LlamaCppTextGenerator",
+                    node_class="LlamaCppTextGeneratorV3",
                     title="SUBPROCESS CRASHED",
                     details={"Return Code": result.returncode, "Error": clean_error[:500]},
                     footer="Try setting kv_cache_type to 'q8_0' or 'q4_0', or reduce the number of layers gpu_layers."
@@ -445,7 +448,7 @@ class LlamaCppTextGenerator:
                     tokens_per_sec = round(completion_tokens / generation_time, 2) if generation_time > 0 else 0.0
 
                     log_end(LogEntry(
-                        node_class="LlamaCppTextGenerator",
+                        node_class="LlamaCppTextGeneratorV3",
                         title="DONE",
                         details={
                             "prompt_tokens": prompt_tokens,
@@ -463,7 +466,7 @@ class LlamaCppTextGenerator:
                 else:
                     error = response_data.get("error", "Unknown error")
                     log(LogEntry(
-                        node_class="LlamaCppTextGenerator",
+                        node_class="LlamaCppTextGeneratorV3",
                         title="LLM Error",
                         details={"Error": error},
                         footer="Check console for details."

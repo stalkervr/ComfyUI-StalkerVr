@@ -59,7 +59,7 @@ class ConfigManager:
     def get(self, key: str, default: Any = None) -> Any:
         """
         Gets value by dot-path.
-        Example: config.get("logging.global_enabled", True)
+        Example: config.get("logging.node_class", True)
         """
         keys = key.split('.')
         current = self._config

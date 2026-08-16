@@ -52,36 +52,39 @@ class TextKeywordChecker:
         Returns:
             tuple[bool, str]: (is_found, original_text)
         """
-        # Если текст или ключевые слова пустые
-        if not text or not keywords:
+        # Проверяем только keywords — если их нет, нечего искать
+        if not keywords:
             log(LogEntry(
                 node_class="TextKeywordChecker",
                 title="Check skipped",
-                details={"Reason": "Empty text or keywords"}
+                details={"Reason": "No keywords provided"}
             ))
             return (False, text)
 
         # Разбиваем строку ключевых слов по разделителю '|'
-        # strip() убирает пробелы вокруг каждого ключевого слова
         keyword_list = [k.strip() for k in keywords.split('|') if k.strip()]
 
         if not keyword_list:
+            log(LogEntry(
+                node_class="TextKeywordChecker",
+                title="Check skipped",
+                details={"Reason": "No valid keywords after parsing"}
+            ))
             return (False, text)
 
-        # Подготовка текста для поиска
+        # Подготовка текста для поиска (пустой текст — это OK)
         search_text = text if case_sensitive else text.lower()
 
         is_found = False
         matched_keyword = None
 
         for kw in keyword_list:
-            # Приводим ключевое слово к нужному регистру
             search_kw = kw if case_sensitive else kw.lower()
 
             if search_kw in search_text:
                 is_found = True
                 matched_keyword = kw
-                break  # Нашли хотя бы одно совпадение, выходим из цикла
+                break
 
         log(LogEntry(
             node_class="TextKeywordChecker",
@@ -90,7 +93,8 @@ class TextKeywordChecker:
                 "Found": is_found,
                 "Matched Keyword": matched_keyword if is_found else "None",
                 "Case Sensitive": case_sensitive,
-                "Total Keywords Checked": len(keyword_list)
+                "Total Keywords Checked": len(keyword_list),
+                "Text Length": len(text)
             }
         ))
 

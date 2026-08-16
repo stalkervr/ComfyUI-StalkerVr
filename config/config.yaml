@@ -1,61 +1,20 @@
 # ComfyUI-StalkerVr Configuration
 
 llm:
-  system_prompts_path: "data/llm/system_instruction"
-  presets_path: "data/llm/presets"
+  system_prompts_path:
+    - "data/llm/system_instruction"              # Основной каталог расширения
+    - "/home/stalkervr/Documents/llm_prompts"    # Личная коллекция
+  presets_path:
+    - "data/llm/presets"                         # Основной каталог расширения
+    - "/home/stalkervr/Documents/llm_presets"    # Личная коллекция
+  models_path:
+    - "/mnt/ai/ComfyUI/models/LLM"           # ComfyUI каталог LLM моделей
+    - "/home/stalkervr/.lmstudio/models"     # каталог LM Studio моделей
 
-# Enable global loging (for develop)
+# Enable loging (for develop)
 logging:
-  global_enabled: true
-
-  # Control logging for specific node classes here
-  node_settings:
-    WanVideoLoraCivitAIDownloader: true
-    WanVideoLoraPairCreator: true
-    WanVideoLoraPairSelect: false
-    WanVideoEnhanceMotionAdvancedKJ: true
-    WanVideoEnhanceMotionAdvanced: true
-
-    LoraLoaderExtended: false
-    LoraLoaderExtendedBatch: false
-
-    JsonFieldValueExtractor: false
-    JsonFieldRemover: false
-    JsonFieldReplaceExtend: false
-    JsonPromptToTextPromptConverter: false
-    JsonSerializeObject: false
-    JsonDeserializeObject: false
-    JsonFormat: false
-    JsonMinify: false
-    JsonPathLoader: false
-    JsonBuilder: false
-    JsonPairInput: false
-
-    StringBuilder: false
-    StringWrapper: false
-    StringNormalize: false
-    StringWrapperBatch: false
-
-    ImageGridCropper: false
-    ImageCropper: false
-    ImageRatioResizer: false
-    ImageGetSize: false
-    ImageDesiredResolution: false
-    ImagesLoadWithMetadata: false
-    ImageLoadWithMetadata: false
-    ImageSaveWithMetadata: false
-
-    CurrentDateTime: false
-    FormatDatePath: false
-    FileSavePath: false
-    SaveTextFile: false
-
-    YAMLLoadPrompt: false
-    YAMLSavePrompt: false
-
-    ImageWatermark: false
-    TextWatermark: false
-    GenerateCreationTime: false
-    SaveVideoWithMetadata: false
-
-    LlamaCppTextGenerator: true
+  node_class:
+    LlamaCppTextGenerator: true   # ← лог выводится
+    LoraApply: true
+    LoraApplyModelOnly: true
+    LlamaPresetLoader: true

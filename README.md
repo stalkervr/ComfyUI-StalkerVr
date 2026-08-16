@@ -54,6 +54,52 @@ A versatile collection of custom nodes for ComfyUI, designed to streamline compl
 
 ---
 
+## 📁 LLM Model Directories
+
+The `LlamaCppTextGenerator` node supports scanning multiple folders for GGUF models. Configure your model paths in `config/config.yaml`:
+
+```yaml
+llm:
+  system_prompts_path: "data/llm/system_instruction"
+  models_path:
+    - "/mnt/ai/ComfyUI/models/LLM"       # Absolute path (e.g., main ComfyUI models)
+    - "/home/user/.lmstudio/models"       # Absolute path (e.g., external collection)
+    - "models/llm"                        # Relative to extension root
+```
+
+### How It Works
+- **Recursive scanning**: All subdirectories are traversed automatically.
+- **Priority order**: If two folders contain models with the same relative path, the **first one in the list wins**.
+- **Path types**:
+  - **Absolute paths** (start with `/`) — used as-is.
+  - **Relative paths** — resolved from the extension's root directory.
+
+### Recommended Folder Structure
+
+Place the main model and its vision projector (mmproj) in the **same folder** for automatic pairing:
+
+```
+models/LLM/
+├── HauhauCS/
+│   ├── Gemma-4-E4B-Uncensored/
+│   │   ├── Gemma-4-E4B-Uncensored-Q8_K_P.gguf       ← main (shown in dropdown)
+│   │   └── mmproj-Gemma-4-E4B-f16.gguf              ← auto-detected (hidden)
+│   └── Qwen3.5-9B-Uncensored/
+│       ├── Qwen3.5-9B-Uncensored-Q5_K_M.gguf
+│       └── mmproj-Qwen3.5-9B-f16.gguf
+```
+
+### Auto-Detection Rules
+- **mmproj files** (containing `mmproj`, `vision`, or `clip` in the filename) are **hidden** from the model dropdown.
+- When you select a main model, the node automatically searches for its mmproj in the same folder with this priority:
+  1. Files containing `mmproj`
+  2. Files containing `vision` or `clip`
+- If no mmproj is found, the node falls back to **text-only mode** (image inputs are ignored with a warning).
+
+> 💡 **Tip**: You can mix ComfyUI's default `models/LLM/` with external collections (LM Studio, personal archives) — just add each root path to the `models_path` list.
+
+---
+
 ---
 
 ### 📥 Wan Video Lora CivitAI Downloader
@@ -243,98 +289,66 @@ Loads Wan 2.2 LoRA pair metadata from structured folders and returns chained `WA
 
 ---
 
-## 🔹 LoRA Loader Extended
-
-Advanced single LoRA loader with enable/disable toggle, unified strength control, and automatic name chaining for workflow tracking.
-
-### ✨ Key Features
-- **Enable/Disable Toggle:** Dynamic workflow control without removing nodes.
-- **Unified Strength:** Single slider applies to both MODEL and CLIP.
-- **Name Chaining:** Automatic tracking of applied LoRAs via `NAME_STRING`.
-- **Silent Bypass:** No console output when disabled or strength = 0.
-- **Intelligent Caching:** Prevents redundant file loading.
-
-### 📥 Input Parameters
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `model` | MODEL | Input model from previous nodes. |
-| `clip` | CLIP | Input CLIP from previous nodes. |
-| `lora_name` | COMBO | Dropdown list of available LoRAs. |
-| `enable_lora` | BOOLEAN | Enable/disable LoRA application (Default: `True`). |
-| `strength` | FLOAT | Unified strength for both MODEL and CLIP (-10.0 to 10.0). |
-| `name_string` | STRING | Chain input: receives previous LoRA names. |
-
-### 📤 Outputs
-| Output | Type | Description |
-|--------|------|-------------|
-| `MODEL` | MODEL | Model with LoRA applied (or bypassed). |
-| `CLIP` | CLIP | CLIP with LoRA applied (or bypassed). |
-| `NAME_STRING` | STRING | Combined list of all applied LoRA names (comma-separated). |
-
----
-
-## 🔹 LoRA Loader Extended (Batch)
-
-Process up to 5 LoRAs in a single node. Ideal for complex workflows requiring multiple style or character LoRAs simultaneously.
-
-### ✨ Key Features
-- **5 Independent Slots:** Individual enable toggles per LoRA.
-- **Per-Slot Strength:** Separate control for each LoRA (unified for MODEL/CLIP).
-- **Consolidated Output:** Single `NAME_STRING` combining all active slots.
-- **Efficient Bypass:** Automatically skips disabled or zero-strength slots.
-
-### 📥 Input Parameters
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `model` / `clip` | MODEL / CLIP | Input model and CLIP. |
-| `lora_name_1` to `5` | COMBO | 5 independent LoRA selectors. |
-| `enable_1` to `5` | BOOLEAN | Individual slot toggles (Default: `True`). |
-| `strength_1` to `5` | FLOAT | Per-slot strength control (-10.0 to 10.0). |
-| `name_string` | STRING | Chain input from previous loaders. |
-
-### 📤 Outputs
-| Output | Type | Description |
-|--------|------|-------------|
-| `MODEL` / `CLIP` | MODEL / CLIP | Model and CLIP with all active LoRAs applied. |
-| `NAME_STRING` | STRING | Combined list of all applied LoRA names from all slots. |
-
----
-
 ### 🔹 Lora Select
-Selects a LoRA file and packs it with its strength parameter into a container object. Supports chaining via `prev_lora` input to build complex sequences of adapters without modifying the base model yet. Returns both the container and a formatted name string for metadata tracking.
+Selects a LoRA file and packs it with its strength parameter into a container object. Supports chaining via `prev_lora` input to build complex sequences of adapters without modifying the base model yet. Pure container builder — name tracking and logging are delegated to the apply nodes.
 
 #### ✨ Key Features
 - **Container-Based Workflow:** Separates LoRA selection from application, allowing reuse of loaded adapters across different models.
 - **Chainable Architecture:** Connect multiple instances via `prev_lora` to build ordered stacks of LoRAs with individual strengths.
-- **Auto-Formatted Names:** Generates a ready-to-use name string (e.g., `style.safetensors | 1.00`) for embedding in outputs or logs.
 - **Smart Caching:** Loads each LoRA file only once per session, even when used in multiple chains.
-- **Safe Bypass:** Returns empty container/string if disabled or set to "None", preserving chain integrity.
+- **Safe Bypass:** Returns the unchanged chain if disabled or set to "None", preserving chain integrity.
+- **Pure Data Packing:** No logging or name-string handling — clean separation of responsibilities; reporting is centralized in `LoraApply` / `LoraApplyModelOnly`.
 
 #### 📥 Input Parameters
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `prev_lora` | LORA_CONTAINER | Previous LoRA chain to extend. Leave empty to start a new chain. |
 | `lora_name` | COMBO | LoRA filename to load. Select "None" to skip this node. |
-| `strength_model` | FLOAT | Strength value for the LoRA (Default: `1.0`). |
+| `strength_model` | FLOAT | Strength value for the LoRA (Default: `1.0`, range `-10.0..10.0`). |
 | `enable_lora` | BOOLEAN | Toggle to activate/deactivate this LoRA in the chain (Default: `True`). |
-| `prev_name_string` | STRING | Accumulated name string from previous nodes in the chain. |
 
-####  Outputs
+#### 📤 Outputs
 | Output | Type | Description |
 |--------|------|-------------|
-| `lora` | LORA_CONTAINER | Packed list of LoRA data + parameters, ready for `LoraApply`. |
-| `name_string` | STRING | Formatted string of all selected LoRAs with their strengths. |
+| `lora` | LORA_CONTAINER | Packed list of LoRA data + parameters (`path`, `data`, `strength`, `name`), ready for apply nodes. |
+
+---
+
+### 🔹 Lora Select Batch
+Batch LoRA selector with 5 independent slots in a single node. Each slot has its own name, strength, and enable toggle. All selected LoRAs are merged into one container chain, fully compatible with `LoraSelect` chaining via `prev_lora`.
+
+#### ✨ Key Features
+- **5 Independent Slots:** Configure up to five LoRAs in one node instead of stacking multiple `LoraSelect` instances.
+- **Per-Slot Control:** Each slot has its own `name` / `strength` / `enable` parameters; disabled or "None" slots are silently skipped.
+- **Merged Container:** All active slots are appended to the chain in slot order (1 → 5).
+- **Chain-Compatible:** Accepts `prev_lora` to extend an existing chain built by `LoraSelect` or another `LoraSelectBatch`.
+- **Per-File Caching:** Individual cache per file path — the same LoRA used in multiple slots is loaded only once.
+- **Pure Data Packing:** No logging or name-string handling; reporting is centralized in the apply nodes.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `prev_lora` | LORA_CONTAINER | Previous LoRA chain to extend. Leave empty to start a new chain. |
+| `lora_1..5_name` | COMBO | LoRA filename for each slot. Select "None" to skip the slot. |
+| `lora_1..5_strength` | FLOAT | Strength value per slot (Default: `1.0`, range `-10.0..10.0`). |
+| `lora_1..5_enable` | BOOLEAN | Per-slot activation toggle (Default: `True`). |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `lora` | LORA_CONTAINER | Merged chain of previous + newly selected LoRAs, ready for apply nodes. |
 
 ---
 
 ### 🔹 Lora Apply
-Applies a chain of pre-configured LoRA containers to a Model/CLIP pair. Pure technical node that handles weight injection without managing names or metadata. Uses internal base-model caching to prevent duplicate application when parameters change.
+Applies a chain of pre-configured LoRA containers to a Model/CLIP pair. Pure technical node that handles weight injection with structured execution reporting. Uses internal base-model caching to prevent duplicate application when parameters change.
 
 #### ✨ Key Features
 - **Clean Application:** Always applies the full container to the original base model, preventing accidental double-patching.
-- **Zero Metadata Overhead:** Focuses solely on tensor operations; name handling is delegated to `LoraSelect`.
+- **Structured Logging:** `START` / `DONE` console blocks list every applied LoRA as `name | strength` with total count and status.
+- **Applied-LoRA Tracking:** Returns the full list of applied adapters as strings for metadata embedding or file logging.
 - **Optional Wiring:** Works without explicit model/clip inputs by remembering the last connected base model.
-- **Error Resilience:** Falls back to unpatched model if application fails, keeping the workflow alive.
+- **Error Resilience:** Falls back to the unpatched model if application fails, keeping the workflow alive.
 - **Batch-Safe:** Designed for dynamic workflows where LoRA configurations change between generations.
 
 #### 📥 Input Parameters
@@ -342,13 +356,39 @@ Applies a chain of pre-configured LoRA containers to a Model/CLIP pair. Pure tec
 |-----------|------|-------------|
 | `model` | MODEL | Base model to patch. Optional if previously cached. |
 | `clip` | CLIP | Base CLIP to patch. Optional if previously cached. |
-| `lora` | LORA_CONTAINER | Pre-packed LoRA chain from one or more `LoraSelect` nodes. |
+| `lora` | LORA_CONTAINER | Pre-packed LoRA chain from one or more select nodes. |
 
 #### 📤 Outputs
 | Output | Type | Description |
 |--------|------|-------------|
 | `MODEL` | MODEL | Model with all LoRAs from the container applied. |
 | `CLIP` | CLIP | CLIP with all LoRAs from the container applied. |
+| `applied_loras` | `*` (LIST) | List of strings `name \| strength` for every applied LoRA, in application order. |
+
+---
+
+### 🔹 Lora Apply Model Only
+Applies a chain of pre-configured LoRA containers to MODEL only, without touching or requiring CLIP. Ideal for workflows where text-encoder modifications are handled separately, or for models that do not rely on standard CLIP conditioning.
+
+#### ✨ Key Features
+- **MODEL-Only Patching:** Injects LoRA weights into the model while leaving the text encoder untouched.
+- **No CLIP Required:** The `clip` input is completely absent — safe for CLIP-free pipelines.
+- **Structured Logging:** `START` / `DONE` console blocks list every applied LoRA as `name \| strength` with total count and status.
+- **Applied-LoRA Tracking:** Returns the full list of applied adapters as strings for metadata embedding or file logging.
+- **Optional Wiring:** Works without an explicit model input by remembering the last connected base model.
+- **Error Resilience:** Falls back to the unpatched model if application fails, keeping the workflow alive.
+
+#### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `model` | MODEL | Base model to patch. Optional if previously cached. |
+| `lora` | LORA_CONTAINER | Pre-packed LoRA chain from one or more select nodes. |
+
+#### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `MODEL` | MODEL | Model with all LoRAs from the container applied. |
+| `applied_loras` | `*` (LIST) | List of strings `name \| strength` for every applied LoRA, in application order. |
 
 ---
 
@@ -1506,40 +1546,105 @@ Overlays image watermarks with scaling modes, positioning presets, opacity contr
 ### 🤖 LLM & Vision-Language Utilities
 
 #### 🔹 LlamaCppTextGenerator
-Local vision-language text generator using GGUF models via `llama-cpp-python`. Supports auto-detection of model handlers (Qwen3-VL, Qwen3.5 LLaVA 1.5/1.6, MiniCPM), file-based system prompt management, and structured performance logging. Ideal for local AI inference with image understanding capabilities.
+Isolated vision-language text generator using GGUF models via `llama-cpp-python`. Each generation runs in a dedicated subprocess, fully protecting ComfyUI from C++ crashes (SIGABRT, CUDA errors). Supports auto-handler detection (Gemma4, Qwen3-VL, Qwen3.5, LLaVA 1.5/1.6, MiniCPM), multi-directory model and system prompt search, automatic vision projector detection, and VRAM-aware execution.
 
 ##### ✨ Key Features
-- **Auto-Handler Detection:** Automatically selects the correct chat handler based on the model filename (`qwen35`, `qwen3vl`, `llava15`, `llava16`, `minicpmv26`).
-- **Vision-Language Support:** Accepts optional image inputs for multimodal queries (Image-to-Text).
-- **System Prompt Management:** Loads system instructions from files in a configurable directory or uses inline text.
-- **Response Cleaning:** Automatically strips `<think>` tags and markdown code blocks for cleaner output.
-- **Performance Logging:** Logs token usage, generation time, and tokens/sec to the console via the centralized logger.
-- **VRAM Optimization:** Configurable GPU layer offloading and context length management.
-- **Seed Control:** Deterministic generation with seed resolution support.
+- **Process Isolation:** Every generation runs in a separate subprocess — if `llama.cpp` crashes, only the subprocess dies while ComfyUI stays stable.
+- **Auto-Handler Detection:** Automatically selects the correct chat handler based on the model filename (`gemma4`, `qwen35`, `qwen3vl`, `llava15`, `llava16`, `minicpmv26`), with a `used_handler` log line revealing the actual choice when `handler_type=auto`.
+- **Multi-Directory Model Search:** Scans multiple folders configured in `config.yaml` (`llm.models_path`) with recursive subfolder traversal. Supports absolute and relative paths, with priority based on list order.
+- **Automatic MMProj Detection:** Vision projector file is auto-discovered in the main model's folder (priority: `mmproj` → `vision` → `clip`); mmproj files are hidden from the model dropdown.
+- **Multi-Directory System Prompts:** Loads system instructions from multiple folders configured in `config.yaml` (`llm.system_prompts_path`) with recursive scanning and first-match priority, or uses inline text.
+- **VRAM Management:** `kv_cache_type` (`f16` / `q8_0` / `q4_0`) quantizes the KV-cache to save VRAM; `flash_attn` bypasses SWA-cache issues in Gemma and similar architectures.
+- **Metadata Output:** Generates a structured JSON (`{instructions, request, response}`) ready for embedding into image/video metadata.
+- **Response Cleaning:** Strips thinking tags, markdown code blocks, self-correction markers, and bullet prefixes for cleaner output.
+- **Structured Logging:** `START` block lists all config parameters; `DONE` block reports token usage, generation time, and tokens/sec (whitelist-controlled via `logging.node_class`).
+- **Version-Agnostic Handler Init:** Tries both `mmproj_path` (new API) and `clip_model_path` (legacy API) automatically.
 
 ##### 📥 Input Parameters
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `model_path` | COMBO | Path to the main GGUF model file (from `models/LLM/`). |
-| `mmproj_path` | COMBO | Path to the CLIP/MMProj GGUF file (required for vision models). |
-| `handler_type` | COMBO | Model architecture selector: `auto`, `qwen35`, `qwen3vl`, `llava15`, `llava16`, `minicpmv26`. |
-| `seed` | INT | Random seed for generation (0 = random). |
-| `system_prompt_file` | COMBO | Optional path to a system prompt file (`.txt`, `.json`, etc.). Overrides inline prompt if selected. |
-| `system_prompt` | STRING | Inline system instruction text (used if `system_prompt_file` is "none"). |
+| `model_path` | COMBO | Main GGUF model file (auto-scanned from all configured directories, mmproj excluded). |
+| `handler_type` | COMBO | Architecture selector: `auto`, `gemma4`, `qwen35`, `qwen3vl`, `llava15`, `llava16`, `minicpmv26`. |
+| `enable_thinking` | BOOLEAN | Enable thinking mode for supported models (Qwen3.5, Gemma4). Default: `False`. |
+| `seed` | INT | Random seed for generation. `control_after_generate` enabled. |
+| `system_prompt_file` | COMBO | Optional system prompt file (`.txt`, `.json`, `.md`, `.yaml`). Overrides inline prompt when selected. |
+| `system_prompt` | STRING | Inline system instruction text (used when `system_prompt_file` is "none"). |
 | `user_prompt` | STRING | The user's query or instruction. |
-| `max_tokens` | INT | Maximum number of tokens to generate (32–4096). |
-| `temperature` | FLOAT | Sampling temperature (0.0–2.0). Lower values are more deterministic. |
-| `top_p` | FLOAT | Nucleus sampling parameter (0.0–1.0). |
-| `repeat_penalty` | FLOAT | Penalty for repeating tokens (1.0–2.0). |
-| `gpu_layers` | INT | Number of layers to offload to GPU (0–80). |
-| `context_length` | INT | Context window size (512–32768). |
-| `enable_thinking` | BOOLEAN | Enable thinking mode for supported models (e.g., Qwen2.5). |
-| `image` | IMAGE | Optional input image for vision-language tasks. |
+| `max_tokens` | INT | Maximum tokens to generate (32–16384, step 32). Default: `8192`. |
+| `context_length` | INT | Context window size (512–65536, step 32). Default: `32768`. Lower if experiencing partial-GPU-layer crashes. |
+| `gpu_layers` | INT | Layers offloaded to GPU (`-1` = all GPU, `0` = CPU-only, manual values 1–200). Default: `-1`. |
+| `kv_cache_type` | COMBO | KV-cache precision: `f16`, `q8_0` (recommended for Gemma), `q4_0` (max savings). Default: `q8_0`. |
+| `flash_attn` | BOOLEAN | Enable Flash Attention — often bypasses SWA-cache bugs. Default: `True`. |
+| `temperature` | FLOAT | Sampling temperature (0.0–2.0). Lower = more deterministic. Default: `0.2`. |
+| `top_p` | FLOAT | Nucleus sampling (0.0–1.0). Default: `0.95`. |
+| `top_k` | INT | Top-k sampling (0–200). Default: `40`. |
+| `min_p` | FLOAT | Min-p sampling (0.0–1.0). Default: `0.05`. |
+| `repeat_penalty` | FLOAT | Repetition penalty (1.0–2.0). Default: `1.1`. |
+| `present_penalty` | FLOAT | Presence penalty (-2.0–2.0). Default: `0.0`. |
+| `frequency_penalty` | FLOAT | Frequency penalty (-2.0–2.0). Default: `0.0`. |
+| `image` | IMAGE | *(Optional)* Input image for vision-language tasks. Ignored with a warning if no mmproj is found. |
 
 ##### 📤 Outputs
 | Output | Type | Description |
 |--------|------|-------------|
-| `response` | STRING | Generated text response from the LLM. |
+| `response` | STRING | Cleaned generated text response from the LLM. |
+| `metadata` | STRING | JSON string: `{"instructions": ..., "request": ..., "response": ...}` — ready for `Image Save With Metadata` or other embedders. |
+
+---
+
+#### 🔹 LlamaPresetLoader
+Loads sampling-parameter presets from JSON files stored in one or more configured directories. Presets use a flat JSON format — the hierarchy lives in the filesystem (folders = model categories, filenames = styles). Content-based caching ensures the workflow re-executes only when the selected preset or its file content actually changes.
+
+##### ✨ Key Features
+- **Multi-Directory Preset Search:** Scans all folders configured in `config.yaml` (`llm.presets_path`) with recursive subfolder traversal. Supports absolute and relative paths, with priority based on list order.
+- **Flat JSON Format:** Preset files contain only sampling parameters plus an optional `description`. Organization is expressed by the folder structure: `qwen3vl/strict.json`, `gemma4/creative.json`.
+- **Smart Caching:** Computes an MD5 hash of the selected preset file (`IS_CHANGED`). Re-executes only when the dropdown selection changes or the file is edited on disk; otherwise ComfyUI cache is preserved and no cascading re-execution occurs.
+- **Graceful Defaults:** Missing keys inside a preset fall back to safe default values; selecting `none` returns the full default set.
+- **Structured Logging:** `START` / `DONE` blocks report the resolved file path and every loaded value (whitelist-controlled via `logging.node_class`).
+
+##### 📥 Input Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `preset_file` | COMBO | Preset JSON file (auto-scanned from all configured directories). Select "none" to use defaults. |
+
+##### 📤 Outputs
+| Output | Type | Description |
+|--------|------|-------------|
+| `temperature` | FLOAT | Sampling temperature (0.0–2.0). |
+| `top_p` | FLOAT | Nucleus sampling (0.0–1.0). |
+| `top_k` | INT | Top-k sampling. |
+| `min_p` | FLOAT | Min-p sampling (0.0–1.0). |
+| `repeat_penalty` | FLOAT | Repetition penalty (1.0–2.0). |
+| `presence_penalty` | FLOAT | Presence penalty (-2.0–2.0). |
+| `frequency_penalty` | FLOAT | Frequency penalty (-2.0–2.0). |
+
+##### 📄 Preset File Format (flat JSON)
+```json
+{
+  "temperature": 0.35,
+  "top_p": 0.82,
+  "top_k": 24,
+  "min_p": 0.02,
+  "repeat_penalty": 1.10,
+  "presence_penalty": 0.0,
+  "frequency_penalty": 0.0
+}
+```
+
+##### 📁 Recommended Folder Structure
+```
+data/llm/presets/
+├── qwen3vl/
+│   ├── strict.json        ← строгий стиль для Qwen3-VL
+│   └── creative.json      ← креативный стиль
+├── qwen35/
+│   └── strict.json
+└── gemma4/
+    └── strict.json
+```
+
+> 💡 **Tip:** Connect the preset outputs to the matching sampling inputs of `LlamaCppTextGenerator`. Hardware parameters (`max_tokens`, `context_length`, `gpu_layers`) stay on the generator node — presets control only the sampling "style".
+
 
 ##### ⚠️ Requirements
 - Requires `llama-cpp-python` installed with CUDA support for GPU acceleration:
