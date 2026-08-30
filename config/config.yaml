@@ -2,14 +2,14 @@
 
 llm:
   system_prompts_path:
-    - "data/llm/system_instruction"              # Основной каталог расширения
-    - "/home/stalkervr/Documents/llm_prompts"    # Личная коллекция
+    - "data/llm/system_instruction"                           # Основной каталог расширения
+    - "/home/stalkervr/Documents/ComfyUI/LLM-Prompts/test"    # Личная коллекция
   presets_path:
-    - "data/llm/presets"                         # Основной каталог расширения
-    - "/home/stalkervr/Documents/llm_presets"    # Личная коллекция
+    - "data/llm/presets"                                       # Основной каталог расширения
+    - "/home/stalkervr/Documents/ComfyUI/LLM-Model-Presets"    # Личная коллекция
   models_path:
-    - "/mnt/ai/ComfyUI/models/LLM"           # ComfyUI каталог LLM моделей
-    - "/home/stalkervr/.lmstudio/models"     # каталог LM Studio моделей
+    - "/mnt/ai/ComfyUI/models/LLM"                             # ComfyUI каталог LLM моделей
+    - "/home/stalkervr/.lmstudio/models"                       # каталог LM Studio моделей
 
 # Enable loging (for develop)
 logging:
@@ -18,3 +18,4 @@ logging:
     LoraApply: true
     LoraApplyModelOnly: true
     LlamaPresetLoader: true
+    WanVideoEnhanceMotionAdvancedKJ: true

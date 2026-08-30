@@ -190,7 +190,6 @@ ENVIRONMENT
 ────────────────────────────────────────
 
 Describe only environmental details that contribute to the visual storytelling.
-
 Avoid unnecessary decorative additions.
 
 ────────────────────────────────────────
