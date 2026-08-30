@@ -20,20 +20,17 @@ class LlamaCppTextGeneratorV3:
     # ==================== ПУТИ МОДЕЛЕЙ (ИЗ КОНФИГУРАЦИИ) ====================
     @classmethod
     def get_models_dirs(cls):
-        """
-        Возвращает список абсолютных путей к каталогам поиска моделей.
-        Конфигурация: llm.models_path — строка ИЛИ список строк.
-        Поддерживает абсолютные пути и относительные (от корня расширения).
-        """
-        raw = ConfigManager().get("llm.models_path", "models/llm")
+        raw = ConfigManager().get("llm.models_path", "models/LLM")
 
         # Обратная совместимость: строка -> список
         if isinstance(raw, str):
             raw = [raw]
         if not isinstance(raw, list):
-            raw = ["models/llm"]
+            raw = ["models/LLM"]
 
-        extension_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        comfyui_root = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
+        )
 
         dirs = []
         for path in raw:
@@ -41,10 +38,13 @@ class LlamaCppTextGeneratorV3:
                 continue
             path = path.strip()
             if os.path.isabs(path):
-                models_dir = path
+                models_dir = os.path.abspath(path)
             else:
-                models_dir = os.path.join(extension_root, path)
-                os.makedirs(models_dir, exist_ok=True)
+                models_dir = os.path.abspath(os.path.join(comfyui_root, path))
+                try:
+                    os.makedirs(models_dir, exist_ok=True)
+                except (PermissionError, OSError) as e:
+                    print(f"[ComfyUI-StalkerVr] ⚠️ Cannot create models dir {models_dir}: {e}")
             if models_dir not in dirs:
                 dirs.append(models_dir)
 
