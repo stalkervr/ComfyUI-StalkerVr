@@ -20,14 +20,17 @@ class LlamaCppTextGenerator:
     # ==================== ПУТИ МОДЕЛЕЙ (ИЗ КОНФИГУРАЦИИ) ====================
     @classmethod
     def get_models_dirs(cls):
-        raw = ConfigManager().get("llm.models_path", "models/llm")
+        raw = ConfigManager().get("llm.models_path", "models/LLM")
 
+        # Обратная совместимость: строка -> список
         if isinstance(raw, str):
             raw = [raw]
         if not isinstance(raw, list):
-            raw = ["models/llm"]
+            raw = ["models/LLM"]
 
-        extension_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        comfyui_root = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
+        )
 
         dirs = []
         for path in raw:
@@ -35,9 +38,9 @@ class LlamaCppTextGenerator:
                 continue
             path = path.strip()
             if os.path.isabs(path):
-                models_dir = path
+                models_dir = os.path.abspath(path)
             else:
-                models_dir = os.path.join(extension_root, path)
+                models_dir = os.path.abspath(os.path.join(comfyui_root, path))
                 try:
                     os.makedirs(models_dir, exist_ok=True)
                 except (PermissionError, OSError) as e:
