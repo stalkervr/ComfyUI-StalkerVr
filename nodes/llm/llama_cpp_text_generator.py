@@ -20,14 +20,8 @@ class LlamaCppTextGenerator:
     # ==================== ПУТИ МОДЕЛЕЙ (ИЗ КОНФИГУРАЦИИ) ====================
     @classmethod
     def get_models_dirs(cls):
-        """
-        Возвращает список абсолютных путей к каталогам поиска моделей.
-        Конфигурация: llm.models_path — строка ИЛИ список строк.
-        Поддерживает абсолютные пути и относительные (от корня расширения).
-        """
         raw = ConfigManager().get("llm.models_path", "models/llm")
 
-        # Обратная совместимость: строка -> список
         if isinstance(raw, str):
             raw = [raw]
         if not isinstance(raw, list):
@@ -44,7 +38,10 @@ class LlamaCppTextGenerator:
                 models_dir = path
             else:
                 models_dir = os.path.join(extension_root, path)
-                os.makedirs(models_dir, exist_ok=True)
+                try:
+                    os.makedirs(models_dir, exist_ok=True)
+                except (PermissionError, OSError) as e:
+                    print(f"[ComfyUI-StalkerVr] ⚠️ Cannot create models dir {models_dir}: {e}")
             if models_dir not in dirs:
                 dirs.append(models_dir)
 
@@ -135,14 +132,8 @@ class LlamaCppTextGenerator:
 
     @classmethod
     def get_system_prompt_dirs(cls):
-        """
-        Возвращает список абсолютных путей к каталогам системных промптов.
-        Конфигурация: llm.system_prompts_path — строка ИЛИ список строк.
-        Поддерживает абсолютные пути и относительные (от корня расширения).
-        """
         raw = ConfigManager().get("llm.system_prompts_path", "data/llm/system_instruction")
 
-        # Обратная совместимость: строка -> список
         if isinstance(raw, str):
             raw = [raw]
         if not isinstance(raw, list):
@@ -159,7 +150,10 @@ class LlamaCppTextGenerator:
                 prompt_dir = path
             else:
                 prompt_dir = os.path.join(extension_root, path)
-            os.makedirs(prompt_dir, exist_ok=True)
+                try:
+                    os.makedirs(prompt_dir, exist_ok=True)
+                except (PermissionError, OSError) as e:
+                    print(f"[ComfyUI-StalkerVr] ⚠️ Cannot create system prompt dir {prompt_dir}: {e}")
             if prompt_dir not in dirs:
                 dirs.append(prompt_dir)
 

@@ -12,14 +12,8 @@ class LlamaPresetLoader:
     # ==================== ПРЕСЕТЫ (ИЗ КОНФИГУРАЦИИ) ====================
     @classmethod
     def get_presets_dirs(cls):
-        """
-        Возвращает список абсолютных путей к каталогам пресетов.
-        Конфигурация: llm.presets_path — строка ИЛИ список строк.
-        Поддерживает абсолютные пути и относительные (от корня расширения).
-        """
         raw = ConfigManager().get("llm.presets_path", "data/llm/presets")
 
-        # Обратная совместимость: строка -> список
         if isinstance(raw, str):
             raw = [raw]
         if not isinstance(raw, list):
@@ -33,10 +27,14 @@ class LlamaPresetLoader:
                 continue
             path = path.strip()
             if os.path.isabs(path):
+                # Абсолютные пути НЕ создаем — они должны существовать (mounted volumes)
                 presets_dir = path
             else:
                 presets_dir = os.path.join(extension_root, path)
-            os.makedirs(presets_dir, exist_ok=True)
+                try:
+                    os.makedirs(presets_dir, exist_ok=True)
+                except (PermissionError, OSError) as e:
+                    print(f"[ComfyUI-StalkerVr] ⚠️ Cannot create presets dir {presets_dir}: {e}")
             if presets_dir not in dirs:
                 dirs.append(presets_dir)
 
