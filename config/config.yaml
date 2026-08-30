@@ -3,13 +3,13 @@
 llm:
   system_prompts_path:
     - "data/llm/system_instruction"                         # от корня РАСШИРЕНИЯ (данные расширения)
-    - "/home/stalkervr/Documents/ComfyUI/LLM-Prompts/test"  # только хост
+    #- "/home/stalkervr/Documents/ComfyUI/LLM-Prompts/test"  # только хост
   presets_path:
     - "data/llm/presets"                                    # от корня РАСШИРЕНИЯ
-    - "/home/stalkervr/Documents/ComfyUI/LLM-Model-Presets" # только хост
+    #- "/home/stalkervr/Documents/ComfyUI/LLM-Model-Presets" # только хост
   models_path:
     - "models/LLM"                                          # от корня ComfyUI — работает ВЕЗДЕ
-    - "/home/stalkervr/.lmstudio/models"                    # только хост
+    #- "/home/stalkervr/.lmstudio/models"                    # только хост
 
 # Enable loging (for develop)
 logging:
