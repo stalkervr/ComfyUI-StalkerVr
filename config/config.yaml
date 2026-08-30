@@ -3,13 +3,13 @@
 llm:
   system_prompts_path:
     - "data/llm/system_instruction"                           # Основной каталог расширения
-    - "/home/stalkervr/Documents/ComfyUI/LLM-Prompts/test"    # Личная коллекция
+    #- "/home/stalkervr/Documents/ComfyUI/LLM-Prompts/test"    # Личная коллекция
   presets_path:
     - "data/llm/presets"                                       # Основной каталог расширения
-    - "/home/stalkervr/Documents/ComfyUI/LLM-Model-Presets"    # Личная коллекция
+    #- "/home/stalkervr/Documents/ComfyUI/LLM-Model-Presets"    # Личная коллекция
   models_path:
     - "/mnt/ai/ComfyUI/models/LLM"                             # ComfyUI каталог LLM моделей
-    - "/home/stalkervr/.lmstudio/models"                       # каталог LM Studio моделей
+    #- "/home/stalkervr/.lmstudio/models"                       # каталог LM Studio моделей
 
 # Enable loging (for develop)
 logging:
