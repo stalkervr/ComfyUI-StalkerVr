@@ -1,4 +1,31 @@
 import os
+import folder_paths
+
+
+def _register_stalkervr_model_paths():
+    """
+    Register additional model directories used by ComfyUI-StalkerVr.
+
+    The paths are derived from ComfyUI's configured models directory
+    rather than hardcoding the ComfyUI installation path.
+    """
+
+    llm_path = os.path.join(folder_paths.models_dir, "LLM")
+
+    # Create/register the custom model category if it doesn't exist.
+    if "LLM" not in folder_paths.folder_names_and_paths:
+        folder_paths.folder_names_and_paths["LLM"] = (
+            [llm_path],
+            {".gguf", ".ggml", ".bin", ".safetensors", ".pt", ".pth"},
+        )
+    else:
+        paths, extensions = folder_paths.folder_names_and_paths["LLM"]
+
+        if llm_path not in paths:
+            paths.append(llm_path)
+
+
+_register_stalkervr_model_paths()
 
 """
 ComfyUI-StalkerVr
