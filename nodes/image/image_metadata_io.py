@@ -5,8 +5,10 @@ import json
 import re
 import folder_paths
 
+from datetime import datetime
 from PIL import Image, ImageOps, PngImagePlugin
 from pathlib import Path
+
 from ...common.constants import CATEGORY_PREFIX
 from ...common.logger import LogEntry, log
 
@@ -327,6 +329,107 @@ class ImagesLoadWithMetadataList:
         return _smart_convert_value_static(value)
 
 
+# class ImageSaveWithMetadata:
+#     @classmethod
+#     def INPUT_TYPES(cls):
+#         return {
+#             "required": {
+#                 "images": ("IMAGE",),
+#                 "save_directory": ("STRING", {"default": "", "tooltip": "Output directory path"}),
+#                 "filename_prefix": ("STRING", {"default": "output", "tooltip": "Filename prefix"}),
+#                 "save_workflow": ("BOOLEAN", {"default": True, "tooltip": "Embed ComfyUI workflow"}),
+#                 "save_captions": ("BOOLEAN", {"default": False, "tooltip": "Save captions to text files if provided"}),
+#                 "metadata_json": ("STRING", {"default": "{}", "multiline": False, "dynamicPrompts": False}),
+#                 "compression_level": ("INT", {"default": 0, "min": 0, "max": 9, "step": 1}),
+#             },
+#             "optional": {"captions": ("STRING", {"forceInput": True})},
+#             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
+#         }
+#
+#     RETURN_TYPES = ("IMAGE", "STRING")
+#     RETURN_NAMES = ("images", "saved_paths")
+#     FUNCTION = "save_images_with_metadata"
+#     CATEGORY = f"{CATEGORY_PREFIX}/Image"
+#     OUTPUT_NODE = True
+#
+#     def save_images_with_metadata(self, images, save_directory, filename_prefix, save_workflow,
+#                                   save_captions=False, metadata_json="", compression_level=4,
+#                                   captions="", prompt=None, extra_pnginfo=None):
+#         save_directory = save_directory.strip()
+#         filename_prefix = filename_prefix.strip()
+#         if not save_directory: raise ValueError("Directory cannot be empty")
+#         if not filename_prefix: raise ValueError("Prefix cannot be empty")
+#
+#         metadata_dict = {}
+#         try:
+#             parsed = json.loads(metadata_json.strip())
+#             if isinstance(parsed, dict): metadata_dict = parsed
+#         except json.JSONDecodeError:
+#             pass
+#
+#         output_dir = Path(save_directory)
+#         output_dir.mkdir(parents=True, exist_ok=True)
+#         next_number = self._get_next_number(output_dir, filename_prefix)
+#
+#         saved_paths = []
+#         # Проверяем наличие данных в captions только если включен переключатель
+#         has_captions = save_captions and bool(captions.strip())
+#
+#         for i in range(images.shape[0]):
+#             idx = next_number + i
+#             filename = f"{filename_prefix}_{idx:05d}.png"
+#             save_path = output_dir / filename
+#
+#             img_np = (images[i].cpu().numpy() * 255.0).clip(0, 255).astype(np.uint8)
+#             if img_np.shape[2] == 4:
+#                 img_pil = Image.fromarray(img_np, mode="RGBA")
+#             elif img_np.shape[2] == 3:
+#                 img_pil = Image.fromarray(img_np, mode="RGB")
+#             else:
+#                 raise ValueError(f"Unsupported channels: {img_np.shape[2]}")
+#
+#             pnginfo = PngImagePlugin.PngInfo()
+#             if save_workflow and extra_pnginfo:
+#                 for k, v in extra_pnginfo.items():
+#                     pnginfo.add_text(k, json.dumps(v))
+#
+#             if metadata_dict:
+#                 meta_str = json.dumps(metadata_dict, ensure_ascii=False, separators=(',', ':'))
+#                 key = "comfy_metadata" if len("comfy_metadata") <= 79 else "metadata"
+#                 if len(meta_str) > 1024:
+#                     (pnginfo.add_ztxt if hasattr(pnginfo, 'add_ztxt') else pnginfo.add_text)(key, meta_str)
+#                 elif any(ord(c) > 127 for c in meta_str):
+#                     (pnginfo.add_itxt if hasattr(pnginfo, 'add_itxt') else pnginfo.add_text)(key, meta_str, lang="", tkey="")
+#                 else:
+#                     pnginfo.add_text(key, meta_str)
+#
+#             img_pil.save(save_path, format="PNG", pnginfo=pnginfo, compress_level=compression_level)
+#             saved_paths.append(str(save_path))
+#
+#             if has_captions:
+#                 try:
+#                     with open(output_dir / f"{filename_prefix}_{idx:05d}.txt", 'w', encoding='utf-8') as f:
+#                         f.write(captions.strip())
+#                 except Exception:
+#                     pass
+#
+#         log(LogEntry(node_class="ImageSaveWithMetadata", title="Saved",
+#                      details={"Count": len(saved_paths), "Path": str(output_dir)}))
+#         return (images, ", ".join(saved_paths) if len(saved_paths) > 1 else saved_paths[0])
+#
+#     def _get_next_number(self, directory, prefix):
+#         pattern = re.compile(rf'^{re.escape(prefix)}_(\d{{5}})\.png$', re.IGNORECASE)
+#         max_num = 0
+#         try:
+#             for entry in directory.iterdir():
+#                 if entry.is_file() and entry.suffix.lower() == '.png':
+#                     match = pattern.match(entry.name)
+#                     if match: max_num = max(max_num, int(match.group(1)))
+#         except Exception:
+#             pass
+#         return max_num + 1
+
+
 class ImageSaveWithMetadata:
     @classmethod
     def INPUT_TYPES(cls):
@@ -334,7 +437,7 @@ class ImageSaveWithMetadata:
             "required": {
                 "images": ("IMAGE",),
                 "save_directory": ("STRING", {"default": "", "tooltip": "Output directory path"}),
-                "filename_prefix": ("STRING", {"default": "output", "tooltip": "Filename prefix"}),
+                "filename_prefix": ("STRING", {"default": "ImageKrea2", "tooltip": "Filename prefix"}),
                 "save_workflow": ("BOOLEAN", {"default": True, "tooltip": "Embed ComfyUI workflow"}),
                 "save_captions": ("BOOLEAN", {"default": False, "tooltip": "Save captions to text files if provided"}),
                 "metadata_json": ("STRING", {"default": "{}", "multiline": False, "dynamicPrompts": False}),
@@ -350,34 +453,53 @@ class ImageSaveWithMetadata:
     CATEGORY = f"{CATEGORY_PREFIX}/Image"
     OUTPUT_NODE = True
 
+    DESCRIPTION = """
+    Saves images with embedded metadata (workflow, custom JSON) using timestamp-based filenames.
+    Filename format: {prefix}_{YYYY-MM-DD}_{HH-MM-SS}.png
+    For batch saving, an index suffix (_001, _002, ...) is added to ensure uniqueness.
+    """
+
     def save_images_with_metadata(self, images, save_directory, filename_prefix, save_workflow,
                                   save_captions=False, metadata_json="", compression_level=4,
                                   captions="", prompt=None, extra_pnginfo=None):
         save_directory = save_directory.strip()
         filename_prefix = filename_prefix.strip()
-        if not save_directory: raise ValueError("Directory cannot be empty")
-        if not filename_prefix: raise ValueError("Prefix cannot be empty")
+        if not save_directory:
+            raise ValueError("Directory cannot be empty")
+        if not filename_prefix:
+            raise ValueError("Prefix cannot be empty")
 
         metadata_dict = {}
         try:
             parsed = json.loads(metadata_json.strip())
-            if isinstance(parsed, dict): metadata_dict = parsed
+            if isinstance(parsed, dict):
+                metadata_dict = parsed
         except json.JSONDecodeError:
             pass
 
         output_dir = Path(save_directory)
         output_dir.mkdir(parents=True, exist_ok=True)
-        next_number = self._get_next_number(output_dir, filename_prefix)
 
         saved_paths = []
-        # Проверяем наличие данных в captions только если включен переключатель
+        batch_size = images.shape[0]
+        # Флаг: добавлять ли индекс к имени (нужно только для батчей > 1)
+        use_batch_index = batch_size > 1
+        # Базовая временная метка для всего батча (чтобы все файлы имели одно время)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
         has_captions = save_captions and bool(captions.strip())
 
-        for i in range(images.shape[0]):
-            idx = next_number + i
-            filename = f"{filename_prefix}_{idx:05d}.png"
-            save_path = output_dir / filename
+        for i in range(batch_size):
+            # Формируем имя файла
+            if use_batch_index:
+                base_name = f"{filename_prefix}_{timestamp}_{i + 1:03d}"
+            else:
+                base_name = f"{filename_prefix}_{timestamp}"
 
+            filename = f"{base_name}.png"
+            save_path = self._get_unique_path(output_dir, filename)
+
+            # Конвертация тензора в PIL Image
             img_np = (images[i].cpu().numpy() * 255.0).clip(0, 255).astype(np.uint8)
             if img_np.shape[2] == 4:
                 img_pil = Image.fromarray(img_np, mode="RGBA")
@@ -386,6 +508,7 @@ class ImageSaveWithMetadata:
             else:
                 raise ValueError(f"Unsupported channels: {img_np.shape[2]}")
 
+            # Сборка PNG-метаданных
             pnginfo = PngImagePlugin.PngInfo()
             if save_workflow and extra_pnginfo:
                 for k, v in extra_pnginfo.items():
@@ -404,25 +527,39 @@ class ImageSaveWithMetadata:
             img_pil.save(save_path, format="PNG", pnginfo=pnginfo, compress_level=compression_level)
             saved_paths.append(str(save_path))
 
+            # Сохранение captions в .txt файл с тем же именем
             if has_captions:
                 try:
-                    with open(output_dir / f"{filename_prefix}_{idx:05d}.txt", 'w', encoding='utf-8') as f:
+                    with open(output_dir / f"{save_path.stem}.txt", 'w', encoding='utf-8') as f:
                         f.write(captions.strip())
                 except Exception:
                     pass
 
-        log(LogEntry(node_class="ImageSaveWithMetadata", title="Saved",
-                     details={"Count": len(saved_paths), "Path": str(output_dir)}))
+        log(LogEntry(
+            node_class="ImageSaveWithMetadata",
+            title="Saved",
+            details={
+                "Count": len(saved_paths),
+                "Path": str(output_dir),
+                "Timestamp": timestamp
+            }
+        ))
         return (images, ", ".join(saved_paths) if len(saved_paths) > 1 else saved_paths[0])
 
-    def _get_next_number(self, directory, prefix):
-        pattern = re.compile(rf'^{re.escape(prefix)}_(\d{{5}})\.png$', re.IGNORECASE)
-        max_num = 0
-        try:
-            for entry in directory.iterdir():
-                if entry.is_file() and entry.suffix.lower() == '.png':
-                    match = pattern.match(entry.name)
-                    if match: max_num = max(max_num, int(match.group(1)))
-        except Exception:
-            pass
-        return max_num + 1
+    def _get_unique_path(self, directory: Path, filename: str) -> Path:
+        """
+        Возвращает путь к файлу, гарантируя его уникальность.
+        Если файл с таким именем уже существует, добавляет числовой суффикс.
+        """
+        path = directory / filename
+        if not path.exists():
+            return path
+
+        stem = path.stem
+        suffix = path.suffix
+        counter = 1
+        while True:
+            new_path = directory / f"{stem}_{counter:03d}{suffix}"
+            if not new_path.exists():
+                return new_path
+            counter += 1

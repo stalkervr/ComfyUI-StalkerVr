@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 from datetime import datetime
 from ...common.constants import CATEGORY_PREFIX
@@ -30,6 +31,10 @@ class FileSavePath:
                 }),
             },
         }
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return time.time()
 
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("save_path", "project_name")

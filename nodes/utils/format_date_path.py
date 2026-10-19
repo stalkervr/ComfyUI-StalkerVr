@@ -1,4 +1,5 @@
 import re
+import time
 from datetime import datetime
 from ...common.constants import CATEGORY_PREFIX
 from ...common.logger import LogEntry, log
@@ -15,9 +16,13 @@ class FormatDatePath:
             }
         }
 
+    # @classmethod
+    # def IS_CHANGED(cls, **kwargs):
+    #     return float("nan")
+
     @classmethod
     def IS_CHANGED(cls, **kwargs):
-        return float("nan")
+        return time.time()
 
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("formatted_path",)

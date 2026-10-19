@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 
 from ...common.constants import CATEGORY_PREFIX
 from ...common.types import Everything
@@ -36,9 +37,9 @@ class Logger:
             }
         }
 
-    # @classmethod
-    # def IS_CHANGED(cls, **kwargs):
-    #     return float("nan")
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return time.time()
 
     RETURN_TYPES = (Everything("*"), "STRING")
     RETURN_NAMES = ("passthrough", "log_string")
